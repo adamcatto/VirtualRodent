@@ -86,8 +86,10 @@ function PoseViewer3D({ poseData, title, color = 0x4CAF50 }) {
     if (!containerRef.current) return
 
     const container = containerRef.current
-    const width = container.clientWidth
-    const height = container.clientHeight
+    
+    // Use fallback dimensions if container isn't sized yet
+    let width = container.clientWidth || 800
+    let height = container.clientHeight || 600
 
     // Scene
     const scene = new THREE.Scene()
@@ -146,21 +148,39 @@ function PoseViewer3D({ poseData, title, color = 0x4CAF50 }) {
     }
     animate()
 
-    // Resize handler
-    const handleResize = () => {
-      const newWidth = container.clientWidth
-      const newHeight = container.clientHeight
-      camera.aspect = newWidth / newHeight
-      camera.updateProjectionMatrix()
-      renderer.setSize(newWidth, newHeight)
+    // Resize handler using ResizeObserver for better responsiveness
+    const handleResize = (entries) => {
+      for (const entry of entries) {
+        const { width: newWidth, height: newHeight } = entry.contentRect
+        if (newWidth > 0 && newHeight > 0) {
+          camera.aspect = newWidth / newHeight
+          camera.updateProjectionMatrix()
+          renderer.setSize(newWidth, newHeight)
+        }
+      }
     }
-    window.addEventListener('resize', handleResize)
+    
+    const resizeObserver = new ResizeObserver(handleResize)
+    resizeObserver.observe(container)
+    
+    // Force initial resize after a brief delay to ensure CSS is applied
+    setTimeout(() => {
+      const actualWidth = container.clientWidth
+      const actualHeight = container.clientHeight
+      if (actualWidth > 0 && actualHeight > 0) {
+        camera.aspect = actualWidth / actualHeight
+        camera.updateProjectionMatrix()
+        renderer.setSize(actualWidth, actualHeight)
+      }
+    }, 100)
 
     return () => {
-      window.removeEventListener('resize', handleResize)
+      resizeObserver.disconnect()
       controls.removeEventListener('change', updateZoomFromCamera)
       renderer.dispose()
-      container.removeChild(renderer.domElement)
+      if (container.contains(renderer.domElement)) {
+        container.removeChild(renderer.domElement)
+      }
     }
   }, [])
 

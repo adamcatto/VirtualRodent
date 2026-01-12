@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react'
 import axios from 'axios'
 import PoseViewer3D from './PoseViewer3D'
+import MouseMesh from './MouseMesh'
 
 const API_BASE = ''
 
@@ -21,6 +22,9 @@ function RawPoseViewer() {
   const [currentFrame, setCurrentFrame] = useState(0)
   const [isPlaying, setIsPlaying] = useState(false)
   const [playbackSpeed, setPlaybackSpeed] = useState(1)
+  
+  // Render mode: 'skeleton' | 'mouse'
+  const [renderMode, setRenderMode] = useState('mouse')
   
   // Load settings
   const [startFrame, setStartFrame] = useState(0)
@@ -288,12 +292,35 @@ function RawPoseViewer() {
           ) : (
             /* Pose Viewer */
             <div className="pose-playback">
+              {/* Render Mode Toggle */}
+              <div className="render-mode-toggle">
+                <button 
+                  className={renderMode === 'skeleton' ? 'active' : ''}
+                  onClick={() => setRenderMode('skeleton')}
+                >
+                  🦴 Skeleton
+                </button>
+                <button 
+                  className={renderMode === 'mouse' ? 'active' : ''}
+                  onClick={() => setRenderMode('mouse')}
+                >
+                  🐭 Mouse Mesh
+                </button>
+              </div>
+              
               <div className="pose-3d-container">
-                <PoseViewer3D
-                  poseData={currentPose}
-                  title={`${selectedSession.session_id} - Frame ${currentFrame + 1}`}
-                  color={0x4CAF50}
-                />
+                {renderMode === 'skeleton' ? (
+                  <PoseViewer3D
+                    poseData={currentPose}
+                    title={`${selectedSession.session_id} - Frame ${currentFrame + 1}`}
+                    color={0x4CAF50}
+                  />
+                ) : (
+                  <MouseMesh
+                    poseData={currentPose}
+                    title={`${selectedSession.session_id} - Frame ${currentFrame + 1}`}
+                  />
+                )}
               </div>
               
               {/* Playback Controls */}
