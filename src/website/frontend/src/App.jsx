@@ -4,20 +4,17 @@ import MetricsDashboard from './components/MetricsDashboard'
 import CombinedViewer from './components/CombinedViewer'
 import DataExplorer from './components/DataExplorer'
 import SessionList from './components/SessionList'
+import RawPoseViewer from './components/RawPoseViewer'
 import './styles/App.css'
 
 // Use relative URLs for API calls (Vite proxy handles /api -> localhost:5000)
 const API_BASE = ''
 
-// Duration options - samples at 50Hz
-// Backend caps at 200 samples to keep JSON payload under 50MB
-// Pose horizon is subsampled 5x (250->50 timesteps) on backend
-const DURATION_OPTIONS = [
-  { label: '2 seconds', value: 2, samples: 100 },
-  { label: '4 seconds (max)', value: 4, samples: 200 },
-]
+// Sampling rate
+const SAMPLING_RATE_HZ = 50
 
 function App() {
+  const [viewMode, setViewMode] = useState('pose')  // 'pose' | 'neural'
   const [experiments, setExperiments] = useState([])
   const [selectedExperiment, setSelectedExperiment] = useState(null)
   const [selectedSession, setSelectedSession] = useState(null)
@@ -28,7 +25,9 @@ function App() {
   const [loadingProgress, setLoadingProgress] = useState(0)
   const [loadingError, setLoadingError] = useState(null)  // Error message for failed loads
   const [activeTab, setActiveTab] = useState('comparison')  // 'comparison' | 'explorer'
-  const [dataDuration, setDataDuration] = useState(4)  // Default 4 seconds (max supported)
+  const [sessionInfo, setSessionInfo] = useState(null)  // Info about available data
+  const [requestedSamples, setRequestedSamples] = useState('')  // User-specified sample count
+  const [loadedBytes, setLoadedBytes] = useState(0)  // Track bytes loaded for progress
   
   // Ref to store abort controller for cancelling requests
   const abortControllerRef = useRef(null)
@@ -80,59 +79,82 @@ function App() {
     setLoadingProgress(0)
   }
 
-  const loadSession = (experimentName, sessionId, duration = dataDuration) => {
+  // Load session info (without loading predictions yet)
+  const loadSession = (experimentName, sessionId) => {
     // Cancel any previous request
     cancelLoading()
     
     setSelectedSession(sessionId)
     setLoading(true)
-    setPredictionsLoading(true)
+    setPredictionsLoading(false)
     setLoadingProgress(0)
     setLoadingError(null)
     setPredictions(null)
+    setSessionInfo(null)
+    setRequestedSamples('')
+    setLoadedBytes(0)
 
     // Load session metrics
     axios.get(`${API_BASE}/api/experiment/${experimentName}/session/${sessionId}/metrics`)
       .then(response => {
         setMetrics(response.data)
-        setLoading(false)
       })
       .catch(error => {
         console.error('Error loading session metrics:', error)
+      })
+
+    // Load session info (total samples available)
+    axios.get(`${API_BASE}/api/experiment/${experimentName}/session/${sessionId}/info`)
+      .then(response => {
+        setSessionInfo(response.data)
+        // Default to 200 samples or total if less
+        setRequestedSamples(Math.min(200, response.data.num_samples).toString())
         setLoading(false)
       })
-
-    // Calculate samples from duration (50Hz) - backend caps at 1000
-    const samples = Math.min(duration * 50, 1000)
-
-    // Estimate loading time based on data size (more realistic progress)
-    const estimatedLoadTimeMs = Math.max(3000, samples * 5)  // ~5ms per sample
-    const progressStep = 95 / (estimatedLoadTimeMs / 200)  // Update every 200ms, cap at 95%
-
-    // Simulate loading progress
-    progressIntervalRef.current = setInterval(() => {
-      setLoadingProgress(prev => {
-        if (prev >= 95) {
-          return 95
-        }
-        return Math.min(95, prev + progressStep)
+      .catch(error => {
+        console.error('Error loading session info:', error)
+        setLoading(false)
+        setLoadingError('Failed to load session info')
       })
-    }, 200)
+  }
+
+  // Start loading predictions with user-specified sample count
+  const startLoadingPredictions = () => {
+    if (!selectedExperiment || !selectedSession || !sessionInfo) return
+    
+    const samples = parseInt(requestedSamples) || 200
+    if (samples < 1) return
+    
+    setPredictionsLoading(true)
+    setLoadingProgress(0)
+    setLoadingError(null)
+    setLoadedBytes(0)
+
+    // Estimate total bytes based on sample count
+    // ~120KB per sample (based on our testing: 24MB for 200 samples)
+    const estimatedTotalBytes = samples * 120 * 1024
 
     // Create abort controller for this request
     abortControllerRef.current = new AbortController()
 
-    // Load session predictions with duration and timeout
-    axios.get(`${API_BASE}/api/experiment/${experimentName}/session/${sessionId}/predictions`, {
+    // Load session predictions with progress tracking
+    axios.get(`${API_BASE}/api/experiment/${selectedExperiment.name}/session/${selectedSession}/predictions`, {
       params: { limit: samples },
-      timeout: 120000,  // 2 minute timeout for large requests
+      timeout: 300000,  // 5 minute timeout for large requests
       signal: abortControllerRef.current.signal,
+      onDownloadProgress: (progressEvent) => {
+        const loaded = progressEvent.loaded
+        setLoadedBytes(loaded)
+        if (progressEvent.total) {
+          setLoadingProgress(Math.round((loaded / progressEvent.total) * 100))
+        } else {
+          // Estimate progress based on expected size
+          const estimatedProgress = Math.min(95, Math.round((loaded / estimatedTotalBytes) * 100))
+          setLoadingProgress(estimatedProgress)
+        }
+      },
     })
       .then(response => {
-        if (progressIntervalRef.current) {
-          clearInterval(progressIntervalRef.current)
-          progressIntervalRef.current = null
-        }
         setLoadingProgress(100)
         console.log('Predictions API response:', {
           status: response.status,
@@ -149,14 +171,10 @@ function App() {
         setPredictionsLoading(false)
       })
       .catch(error => {
-        if (progressIntervalRef.current) {
-          clearInterval(progressIntervalRef.current)
-          progressIntervalRef.current = null
-        }
-        
         // Don't show error for cancelled requests
         if (axios.isCancel(error) || error.name === 'CanceledError') {
           console.log('Request cancelled')
+          setPredictionsLoading(false)
           return
         }
         
@@ -166,7 +184,7 @@ function App() {
         // Set user-friendly error message
         let errorMsg = 'Failed to load predictions'
         if (error.code === 'ECONNABORTED') {
-          errorMsg = 'Request timed out - try a shorter duration'
+          errorMsg = 'Request timed out - try fewer samples'
         } else if (error.response?.status === 404) {
           errorMsg = 'Predictions file not found - run test evaluation first'
         } else if (error.response?.data?.error) {
@@ -181,22 +199,38 @@ function App() {
       })
   }
 
-  // Reload predictions with new duration
-  const reloadPredictions = (newDuration) => {
-    setDataDuration(newDuration)
-    setLoadingError(null)  // Clear any previous error
-    if (selectedExperiment && selectedSession) {
-      loadSession(selectedExperiment.name, selectedSession, newDuration)
-    }
+  // Format bytes for display
+  const formatBytes = (bytes) => {
+    if (bytes < 1024) return `${bytes} B`
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
+    return `${(bytes / 1024 / 1024).toFixed(1)} MB`
   }
 
   return (
     <div className="app">
       <header>
-        <h1>VirtualRodent - Neural Decoding Visualization</h1>
-        <p>Pose prediction from neural signals</p>
+        <h1>VirtualRodent</h1>
+        <nav className="main-nav">
+          <button 
+            className={`nav-button ${viewMode === 'pose' ? 'active' : ''}`}
+            onClick={() => setViewMode('pose')}
+          >
+            🐭 Pose Viewer
+          </button>
+          <button 
+            className={`nav-button ${viewMode === 'neural' ? 'active' : ''}`}
+            onClick={() => setViewMode('neural')}
+          >
+            🧠 Neural Decoding
+          </button>
+        </nav>
       </header>
 
+      {/* Raw Pose Viewer Mode */}
+      {viewMode === 'pose' && <RawPoseViewer />}
+
+      {/* Neural Decoding Mode */}
+      {viewMode === 'neural' && (
       <div className="main-content">
         <aside className="sidebar">
           <h2>Experiments</h2>
@@ -266,35 +300,78 @@ function App() {
                   <section>
                     <h2>Neural Decoding Visualization</h2>
 
-                    {/* Data Controls */}
-                    <div className="data-controls">
-                      <label>
-                        Data Duration:
-                        <select
-                          value={dataDuration}
-                          onChange={(e) => reloadPredictions(parseInt(e.target.value))}
-                        >
-                          {DURATION_OPTIONS.map(opt => (
-                            <option key={opt.value} value={opt.value}>
-                              {opt.label} (~{opt.samples} samples)
-                            </option>
-                          ))}
-                        </select>
-                      </label>
-                      {predictionsLoading && (
-                        <button 
-                          className="cancel-button"
-                          onClick={cancelLoading}
-                        >
-                          Cancel
-                        </button>
-                      )}
-                      {predictions && !predictionsLoading && (
+                    {/* Session Info & Load Controls */}
+                    {sessionInfo && !predictions && !predictionsLoading && (
+                      <div className="preload-controls">
+                        <div className="session-info-panel">
+                          <h4>Session Data Available</h4>
+                          <div className="info-row">
+                            <span className="info-label">Total Samples:</span>
+                            <span className="info-value">{sessionInfo.num_samples.toLocaleString()}</span>
+                          </div>
+                          <div className="info-row">
+                            <span className="info-label">Total Duration:</span>
+                            <span className="info-value">{sessionInfo.total_time_seconds.toFixed(1)}s ({(sessionInfo.total_time_seconds / 60).toFixed(1)} min)</span>
+                          </div>
+                          <div className="info-row">
+                            <span className="info-label">Pose Horizon:</span>
+                            <span className="info-value">{sessionInfo.pose_horizon} timesteps ({(sessionInfo.pose_horizon / SAMPLING_RATE_HZ).toFixed(1)}s)</span>
+                          </div>
+                          {sessionInfo.num_neurons && (
+                            <div className="info-row">
+                              <span className="info-label">Neurons:</span>
+                              <span className="info-value">{sessionInfo.num_neurons}</span>
+                            </div>
+                          )}
+                        </div>
+                        
+                        <div className="load-config">
+                          <label>
+                            <span>Samples to load:</span>
+                            <input
+                              type="number"
+                              min="1"
+                              max={sessionInfo.num_samples}
+                              value={requestedSamples}
+                              onChange={(e) => setRequestedSamples(e.target.value)}
+                              placeholder="e.g., 200"
+                            />
+                            <span className="input-hint">
+                              = {((parseInt(requestedSamples) || 0) / SAMPLING_RATE_HZ).toFixed(1)}s
+                              {parseInt(requestedSamples) > 500 && (
+                                <span className="warning"> (large request, may be slow)</span>
+                              )}
+                            </span>
+                          </label>
+                          <button 
+                            className="load-button"
+                            onClick={startLoadingPredictions}
+                            disabled={!requestedSamples || parseInt(requestedSamples) < 1}
+                          >
+                            Load Data
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Data Controls - shown when data is loaded */}
+                    {predictions && !predictionsLoading && (
+                      <div className="data-controls">
                         <span className="data-info">
                           Loaded: {predictions.predictions?.length || 0} / {predictions.num_total_samples} samples
+                          ({((predictions.predictions?.length || 0) / SAMPLING_RATE_HZ).toFixed(1)}s of {(predictions.num_total_samples / SAMPLING_RATE_HZ).toFixed(1)}s)
                         </span>
-                      )}
-                    </div>
+                        <button 
+                          className="reload-button"
+                          onClick={() => {
+                            setPredictions(null)
+                            setLoadingError(null)
+                          }}
+                        >
+                          Load Different Amount
+                        </button>
+                      </div>
+                    )}
 
                     {/* Tab Navigation */}
                     <div className="tab-navigation">
@@ -323,8 +400,19 @@ function App() {
                               style={{ width: `${loadingProgress}%` }}
                             />
                           </div>
-                          <p className="loading-text">{Math.round(loadingProgress)}% - Fetching {dataDuration}s of data</p>
-                          <p className="loading-hint">Large datasets may take up to 2 minutes to load</p>
+                          <p className="loading-text">
+                            {loadingProgress}% complete
+                          </p>
+                          <p className="loading-details">
+                            Downloaded: {formatBytes(loadedBytes)}
+                            {requestedSamples && ` • Requested: ${requestedSamples} samples (${(parseInt(requestedSamples) / SAMPLING_RATE_HZ).toFixed(1)}s)`}
+                          </p>
+                          <button 
+                            className="cancel-button"
+                            onClick={cancelLoading}
+                          >
+                            Cancel
+                          </button>
                         </div>
                       </div>
                     )}
@@ -402,6 +490,7 @@ function App() {
           )}
         </main>
       </div>
+      )}
     </div>
   )
 }

@@ -261,15 +261,9 @@ def get_session_predictions(name, session_id):
     # Load predictions
     data = np.load(pred_file)
 
-    # Get pagination params
+    # Get pagination params - no hard cap, user controls how much to load
     start = int(request.args.get('start', 0))
     limit = int(request.args.get('limit', 200))
-    
-    # IMPORTANT: Cap samples to keep JSON payload under ~50MB
-    # Full data: 1000 samples × 250 timesteps × 69 coords × 2 (pred+gt) = ~500MB JSON
-    # With caps: 200 samples × 50 timesteps × 69 coords × 2 = ~20MB JSON
-    MAX_SAMPLES = 200
-    limit = min(limit, MAX_SAMPLES)
     end = min(start + limit, len(data['predictions']))
 
     # Subsample pose horizon (250 -> 50 timesteps)
@@ -363,6 +357,162 @@ def get_visualization_file(category, filename):
 def health_check():
     """Health check endpoint."""
     return jsonify({"status": "healthy"})
+
+
+# ============================================================================
+# Raw Pose Data from HDF5 Files
+# ============================================================================
+
+@app.route("/api/sessions")
+def list_sessions():
+    """List all available sessions from HDF5 files."""
+    import h5py
+    
+    sessions = []
+    
+    for brain_region in ["DLS", "motor_cortex"]:
+        region_dir = DATA_DIR / brain_region
+        if not region_dir.exists():
+            continue
+            
+        for animal_dir in region_dir.iterdir():
+            if not animal_dir.is_dir() or animal_dir.name.startswith('.'):
+                continue
+                
+            animal = animal_dir.name
+            
+            for h5_file in animal_dir.glob("*.h5"):
+                if h5_file.name.startswith('.'):
+                    continue
+                    
+                session_id = h5_file.stem
+                
+                # Get basic info from file
+                try:
+                    with h5py.File(h5_file, 'r') as f:
+                        num_frames = f['pose/keypoints'].shape[0]
+                        sampling_rate = 50  # Hz
+                        duration_seconds = num_frames / sampling_rate
+                        
+                        sessions.append({
+                            "session_id": session_id,
+                            "animal": animal,
+                            "brain_region": brain_region,
+                            "num_frames": num_frames,
+                            "duration_seconds": duration_seconds,
+                            "duration_minutes": duration_seconds / 60,
+                            "sampling_rate_hz": sampling_rate,
+                            "file_path": str(h5_file.relative_to(DATA_DIR)),
+                        })
+                except Exception as e:
+                    print(f"Error reading {h5_file}: {e}")
+    
+    # Sort by session_id
+    sessions.sort(key=lambda x: (x['brain_region'], x['animal'], x['session_id']))
+    
+    return jsonify(sessions)
+
+
+@app.route("/api/session/<brain_region>/<animal>/<session_id>/info")
+def get_raw_session_info(brain_region, animal, session_id):
+    """Get info about a raw session from HDF5 file."""
+    import h5py
+    
+    h5_file = DATA_DIR / brain_region / animal / f"{session_id}.h5"
+    
+    if not h5_file.exists():
+        return jsonify({"error": "Session not found", "path_checked": str(h5_file)}), 404
+    
+    try:
+        with h5py.File(h5_file, 'r') as f:
+            keypoints_shape = f['pose/keypoints'].shape
+            num_frames = keypoints_shape[0]
+            num_coords = keypoints_shape[1]  # 3 (xyz)
+            num_keypoints = keypoints_shape[2]  # 23
+            
+            sampling_rate = 50  # Hz
+            duration_seconds = num_frames / sampling_rate
+            
+            return jsonify({
+                "session_id": session_id,
+                "animal": animal,
+                "brain_region": brain_region,
+                "num_frames": num_frames,
+                "num_keypoints": num_keypoints,
+                "num_coords": num_coords,
+                "duration_seconds": duration_seconds,
+                "duration_minutes": duration_seconds / 60,
+                "sampling_rate_hz": sampling_rate,
+            })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/session/<brain_region>/<animal>/<session_id>/pose")
+def get_raw_pose(brain_region, animal, session_id):
+    """Get raw pose keypoints from HDF5 file."""
+    import h5py
+    from flask import Response
+    import json as json_module
+    
+    h5_file = DATA_DIR / brain_region / animal / f"{session_id}.h5"
+    
+    if not h5_file.exists():
+        return jsonify({"error": "Session not found", "path_checked": str(h5_file)}), 404
+    
+    # Get pagination params
+    start = int(request.args.get('start', 0))
+    limit = int(request.args.get('limit', 1000))
+    subsample = int(request.args.get('subsample', 1))  # Optional subsampling
+    
+    try:
+        with h5py.File(h5_file, 'r') as f:
+            keypoints = f['pose/keypoints']
+            total_frames = keypoints.shape[0]
+            
+            end = min(start + limit, total_frames)
+            
+            # Load data with optional subsampling
+            if subsample > 1:
+                pose_data = keypoints[start:end:subsample, :, :]
+                effective_rate = 50 / subsample
+            else:
+                pose_data = keypoints[start:end, :, :]
+                effective_rate = 50
+            
+            # Convert from (T, 3, 23) to (T, 69) - flatten keypoints
+            # Format: [x0, x1, ..., x22, y0, y1, ..., y22, z0, z1, ..., z22]
+            T = pose_data.shape[0]
+            pose_flat = np.zeros((T, 69), dtype=np.float32)
+            pose_flat[:, :23] = pose_data[:, 0, :]  # x coords
+            pose_flat[:, 23:46] = pose_data[:, 1, :]  # y coords
+            pose_flat[:, 46:69] = pose_data[:, 2, :]  # z coords
+            
+            response = {
+                "pose": pose_flat.tolist(),
+                "num_frames_loaded": T,
+                "total_frames": total_frames,
+                "start": start,
+                "end": end,
+                "subsample": subsample,
+                "effective_sampling_rate_hz": effective_rate,
+                "original_sampling_rate_hz": 50,
+                "duration_loaded_seconds": T / effective_rate,
+                "total_duration_seconds": total_frames / 50,
+            }
+            
+            json_str = json_module.dumps(response)
+            size_mb = len(json_str) / 1024 / 1024
+            print(f"Serving raw pose: {T} frames, {size_mb:.2f} MB")
+            
+            return Response(
+                json_str,
+                mimetype='application/json',
+                headers={'Content-Length': str(len(json_str))}
+            )
+            
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 
 if __name__ == "__main__":

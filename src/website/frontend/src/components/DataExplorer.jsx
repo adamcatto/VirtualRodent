@@ -14,9 +14,11 @@ function DataExplorer({ groundTruth, neural, numTotalSamples, neuralSubsampleFac
   const [selectedTimeStep, setSelectedTimeStep] = useState(0)  // Within pose horizon
 
   const numFrames = groundTruth?.length || 0
-  const poseHorizon = groundTruth?.[0]?.length || 250  // Default 5 seconds
-  const neuralHistorySubsampled = neural?.[0]?.length || 75  // Subsampled (750 / 10)
-  const neuralHistoryOriginal = neuralHistorySubsampled * neuralSubsampleFactor  // Original time steps
+  const poseHorizonDisplayed = groundTruth?.[0]?.length || 50  // Subsampled timesteps shown
+  const poseHorizonOriginal = poseHorizonDisplayed * poseSubsampleFactor  // Original 250 timesteps = 5s
+  const neuralHistoryDisplayed = neural?.[0]?.length || 75  // Subsampled timesteps shown
+  const neuralHistoryOriginal = neuralHistoryDisplayed * neuralSubsampleFactor  // Original 750 timesteps = 15s
+  const numNeurons = neural?.[0]?.[0]?.length || 0
 
   // Debug logging
   useEffect(() => {
@@ -28,11 +30,13 @@ function DataExplorer({ groundTruth, neural, numTotalSamples, neuralSubsampleFac
       neuralLength: neural?.length,
       neuralShape: neural ? `[${neural.length}, ${neural[0]?.length}, ${neural[0]?.[0]?.length}]` : null,
       numFrames,
-      poseHorizon,
-      neuralHistorySubsampled,
-      neuralHistoryOriginal
+      poseHorizonDisplayed,
+      poseHorizonOriginal,
+      neuralHistoryDisplayed,
+      neuralHistoryOriginal,
+      numNeurons,
     })
-  }, [groundTruth, neural, numFrames, poseHorizon, neuralHistorySubsampled, neuralHistoryOriginal])
+  }, [groundTruth, neural, numFrames, poseHorizonDisplayed, poseHorizonOriginal, neuralHistoryDisplayed, neuralHistoryOriginal, numNeurons])
 
   // Playback loop
   useEffect(() => {
@@ -78,7 +82,7 @@ function DataExplorer({ groundTruth, neural, numTotalSamples, neuralSubsampleFac
           setCurrentFrame(prev => Math.min(numFrames - 1, prev + 1))
           break
         case 'ArrowUp':
-          setSelectedTimeStep(prev => Math.min(poseHorizon - 1, prev + 10))
+          setSelectedTimeStep(prev => Math.min(poseHorizonDisplayed - 1, prev + 10))
           break
         case 'ArrowDown':
           setSelectedTimeStep(prev => Math.max(0, prev - 10))
@@ -88,7 +92,7 @@ function DataExplorer({ groundTruth, neural, numTotalSamples, neuralSubsampleFac
 
     window.addEventListener('keydown', handleKeyPress)
     return () => window.removeEventListener('keydown', handleKeyPress)
-  }, [numFrames, poseHorizon])
+  }, [numFrames, poseHorizonDisplayed])
 
   if (numFrames === 0) {
     return (
@@ -111,8 +115,8 @@ function DataExplorer({ groundTruth, neural, numTotalSamples, neuralSubsampleFac
             subsampleFactor={neuralSubsampleFactor}
           />
           <div className="neural-info">
-            <span>Neural History: {neuralHistoryOriginal} frames ({(neuralHistoryOriginal / 50).toFixed(1)}s) [subsampled: {neuralHistorySubsampled}]</span>
-            <span>Neurons: {neural?.[0]?.[0]?.length || 'N/A'}</span>
+            <span>Neural: {neuralHistoryDisplayed} displayed ({neuralHistoryOriginal} original, {(neuralHistoryOriginal / 50).toFixed(1)}s)</span>
+            <span>Neurons: {numNeurons}</span>
           </div>
         </div>
       )}
@@ -156,7 +160,7 @@ function DataExplorer({ groundTruth, neural, numTotalSamples, neuralSubsampleFac
 
         <div className="frame-info">
           <span>Sample: {currentFrame + 1} / {numFrames}</span>
-          <span>Time Step: {selectedTimeStep + 1} / {poseHorizon} ({((selectedTimeStep + 1) / 50).toFixed(2)}s into future)</span>
+          <span>Time Step: {selectedTimeStep + 1} / {poseHorizonDisplayed} ({((selectedTimeStep + 1) * poseSubsampleFactor / 50).toFixed(2)}s into future)</span>
           {numTotalSamples && numTotalSamples > numFrames && (
             <span className="total-info">(Showing {numFrames} of {numTotalSamples} total samples)</span>
           )}
@@ -179,7 +183,7 @@ function DataExplorer({ groundTruth, neural, numTotalSamples, neuralSubsampleFac
             <input
               type="range"
               min={0}
-              max={poseHorizon - 1}
+              max={poseHorizonDisplayed - 1}
               value={selectedTimeStep}
               onChange={(e) => setSelectedTimeStep(parseInt(e.target.value))}
             />
@@ -204,20 +208,20 @@ function DataExplorer({ groundTruth, neural, numTotalSamples, neuralSubsampleFac
         <h4>Data Information</h4>
         <div className="info-grid">
           <div className="info-item">
-            <span className="info-label">Pose Horizon:</span>
-            <span className="info-value">{poseHorizon} frames ({(poseHorizon / 50).toFixed(1)}s)</span>
+            <span className="info-label">Samples Loaded:</span>
+            <span className="info-value">{numFrames} of {numTotalSamples || numFrames}</span>
           </div>
           <div className="info-item">
-            <span className="info-label">Neural History:</span>
-            <span className="info-value">{neuralHistoryOriginal} frames ({(neuralHistoryOriginal / 50).toFixed(1)}s)</span>
+            <span className="info-label">Pose (per sample):</span>
+            <span className="info-value">{poseHorizonDisplayed} frames ({(poseHorizonOriginal / 50).toFixed(1)}s future)</span>
           </div>
           <div className="info-item">
-            <span className="info-label">Total Samples:</span>
-            <span className="info-value">{numTotalSamples || numFrames}</span>
+            <span className="info-label">Neural (per sample):</span>
+            <span className="info-value">{neuralHistoryDisplayed} frames ({(neuralHistoryOriginal / 50).toFixed(1)}s history)</span>
           </div>
           <div className="info-item">
-            <span className="info-label">Keypoints:</span>
-            <span className="info-value">23 (69 coordinates)</span>
+            <span className="info-label">Neurons:</span>
+            <span className="info-value">{numNeurons}</span>
           </div>
         </div>
       </div>

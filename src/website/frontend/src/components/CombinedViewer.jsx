@@ -6,12 +6,16 @@ function CombinedViewer({ predictions, groundTruth, neural, numTotalSamples, neu
   const [currentFrame, setCurrentFrame] = useState(0)
   const [isPlaying, setIsPlaying] = useState(false)
   const [playbackSpeed, setPlaybackSpeed] = useState(1)
-  const [showPredictions, setShowPredictions] = useState(true)
+  const [showPredictions, setShowPredictions] = useState(false)  // Off by default per user request
   const [selectedTimeStep, setSelectedTimeStep] = useState(0)  // Within prediction horizon
   const [showDiagnostics, setShowDiagnostics] = useState(false)  // Toggle diagnostic info
 
   const numFrames = predictions?.length || groundTruth?.length || 0
-  const poseHorizon = predictions?.[0]?.length || groundTruth?.[0]?.length || 250  // Default 5 seconds
+  const poseHorizonDisplayed = predictions?.[0]?.length || groundTruth?.[0]?.length || 50
+  const poseHorizonOriginal = poseHorizonDisplayed * poseSubsampleFactor
+  const neuralHistoryDisplayed = neural?.[0]?.length || 75
+  const neuralHistoryOriginal = neuralHistoryDisplayed * neuralSubsampleFactor
+  const numNeurons = neural?.[0]?.[0]?.length || 0
 
   // Debug logging
   useEffect(() => {
@@ -27,9 +31,13 @@ function CombinedViewer({ predictions, groundTruth, neural, numTotalSamples, neu
       neuralShape: neural ? `[${neural.length}, ${neural[0]?.length}, ${neural[0]?.[0]?.length}]` : null,
       numTotalSamples,
       numFrames,
-      poseHorizon
+      poseHorizonDisplayed,
+      poseHorizonOriginal,
+      neuralHistoryDisplayed,
+      neuralHistoryOriginal,
+      numNeurons,
     })
-  }, [predictions, groundTruth, neural, numTotalSamples, numFrames, poseHorizon])
+  }, [predictions, groundTruth, neural, numTotalSamples, numFrames, poseHorizonDisplayed, poseHorizonOriginal, neuralHistoryDisplayed, neuralHistoryOriginal, numNeurons])
 
   // Playback loop
   useEffect(() => {
@@ -97,7 +105,7 @@ function CombinedViewer({ predictions, groundTruth, neural, numTotalSamples, neu
           setCurrentFrame(prev => Math.min(numFrames - 1, prev + 1))
           break
         case 'ArrowUp':
-          setSelectedTimeStep(prev => Math.min(poseHorizon - 1, prev + 10))
+          setSelectedTimeStep(prev => Math.min(poseHorizonDisplayed - 1, prev + 10))
           break
         case 'ArrowDown':
           setSelectedTimeStep(prev => Math.max(0, prev - 10))
@@ -107,7 +115,7 @@ function CombinedViewer({ predictions, groundTruth, neural, numTotalSamples, neu
 
     window.addEventListener('keydown', handleKeyPress)
     return () => window.removeEventListener('keydown', handleKeyPress)
-  }, [numFrames, poseHorizon])
+  }, [numFrames, poseHorizonDisplayed])
 
   if (numFrames === 0) {
     return (
@@ -175,9 +183,9 @@ function CombinedViewer({ predictions, groundTruth, neural, numTotalSamples, neu
 
         <div className="frame-info">
           <span>Sample: {currentFrame + 1} / {numFrames}</span>
-          <span>Time Step: {selectedTimeStep + 1} / {poseHorizon}</span>
+          <span>Time Step: {selectedTimeStep + 1} / {poseHorizonDisplayed} ({((selectedTimeStep + 1) * poseSubsampleFactor / 50).toFixed(2)}s into future)</span>
           {numTotalSamples && numTotalSamples > numFrames && (
-            <span className="total-info">(Total: {numTotalSamples})</span>
+            <span className="total-info">(Showing {numFrames} of {numTotalSamples} total samples)</span>
           )}
         </div>
 
@@ -194,11 +202,11 @@ function CombinedViewer({ predictions, groundTruth, neural, numTotalSamples, neu
           </label>
 
           <label>
-            Time Step (within horizon):
+            Future Time Step:
             <input
               type="range"
               min={0}
-              max={poseHorizon - 1}
+              max={poseHorizonDisplayed - 1}
               value={selectedTimeStep}
               onChange={(e) => setSelectedTimeStep(parseInt(e.target.value))}
             />
