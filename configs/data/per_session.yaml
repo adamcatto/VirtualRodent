@@ -1,0 +1,17 @@
+# @package _global_.data
+
+# Per-session evaluation strategy
+# Each session split: 60% train / 1% gap / 19% val / 1% gap / 19% test
+
+data_dir: "data/Virtual_Rodent"
+strategy: "per_session"
+neural_history: 750  # 15 seconds
+pose_history: 750
+pose_horizon: 250    # 5 seconds
+batch_size: 32
+num_workers: 4
+brain_regions: null
+animals: null
+
+# Per-session specific
+split_ratios: [0.6, 0.01, 0.19, 0.01, 0.19]  # train, gap1, val, gap2, test

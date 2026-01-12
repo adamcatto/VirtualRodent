@@ -1,0 +1,14 @@
+# @package _global_
+
+# Ablation study experiment
+
+defaults:
+  - override /model: lstm_neural_only
+  - override /data: per_session
+
+experiment_name: "ablation_neural_only_${now:%Y%m%d_%H%M%S}"
+
+# Use this to test different ablations:
+# - model=lstm_neural_only: Neural signals only
+# - model=lstm_multimodal: Full multimodal
+# - model=gru_multimodal: GRU instead of LSTM

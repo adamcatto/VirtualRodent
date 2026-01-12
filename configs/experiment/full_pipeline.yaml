@@ -1,0 +1,13 @@
+# @package _global_
+
+# Full pipeline experiment: Run both evaluation strategies
+
+defaults:
+  - override /model: lstm_multimodal
+  - override /data: per_session
+
+experiment_name: "full_pipeline_${now:%Y%m%d_%H%M%S}"
+
+# Run both strategies sequentially
+# This config can be used to run per-session first, then per-animal
+# Modify data.strategy to switch between them

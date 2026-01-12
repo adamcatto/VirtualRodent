@@ -1,0 +1,15 @@
+# @package _global_.model
+
+# LSTM with multimodal input (neural + pose history)
+
+hidden_dim: 256
+num_layers: 2
+bidirectional: true
+rnn_type: "lstm"
+input_mode: "multimodal"  # Uses neural + pose history to predict future pose
+dropout: 0.2
+learning_rate: 1e-3
+lambda_velocity: 0.1
+weight_decay: 1e-5
+scheduler_patience: 5
+scheduler_factor: 0.5

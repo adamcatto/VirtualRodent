@@ -1,0 +1,19 @@
+# @package _global_.data
+
+# Per-animal evaluation strategy
+# Sessions split chronologically: first 60% train, middle 20% val, last 20% test
+
+data_dir: "data/Virtual_Rodent"
+strategy: "per_animal"
+neural_history: 750  # 15 seconds
+pose_history: 750
+pose_horizon: 250    # 5 seconds
+batch_size: 32
+num_workers: 4
+brain_regions: null
+animals: null
+
+# Per-animal specific
+train_ratio: 0.6
+val_ratio: 0.2
+test_ratio: 0.2

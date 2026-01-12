@@ -1,0 +1,3761 @@
+
+
+--- PAGE 1 ---
+
+A virtual rodent predicts the structure of 
+neural activity across behaviors
+Diego Aldarondo, Josh Merel, Jesse D. M­ar­sh­al­l­, L­eo­nard Hasenclever, Ugne Klibaite, 
+Amanda Gellis, Yuval Tassa, Greg Wayne, Matthew Botvinick & Bence P. Ölveczky
+This is a PDF file of a peer-reviewed paper that has been accepted for publication. 
+Although unedited, the content has been subjected to preliminary formatting. Nature 
+is providing this early version of the typeset paper as a service to our authors and 
+readers. The text and figures will undergo copyediting and a proof review before the 
+paper is published in its final form. Please note that during the production process 
+errors may be discovered which could affect the content, and all legal disclaimers 
+apply.
+Received: 16 March 2023
+Accepted: 30 May 2024
+Accelerated Article Preview 
+Published online xx xx xxxx
+Cite this article as: Aldarondo, D. et al.  
+A virtual rodent predicts the structure of 
+neural activity across behaviors. Nature 
+https://doi.org/10.1038/s41586-024-07633-4 
+(2024)
+https://doi.org/10.1038/s41586-024-07633-4
+Nature  |  www.nature.com
+Accelerated Article Preview
+A
+C
+C
+E
+L
+E
+R
+A
+T
+E
+D
+ A
+R
+T
+I
+C
+L
+E
+ P
+R
+E
+V
+I
+E
+W
+
+
+--- PAGE 2 ---
+
+ 
+A virtual rodent predicts the structure of neural activity across behaviors 
+1 
+ 
+2 
+Authors: Diego Aldarondo1,2*, Josh Merel2, Jesse D Marshall1, Leonard Hasenclever2, Ugne 
+3 
+Klibaite1, Amanda Gellis1, Yuval Tassa2, Greg Wayne2, Matthew Botvinick2,3, Bence P. 
+4 
+Ölveczky1* 
+5 
+Affiliations:                                                                                                                 
+6 
+1Department of Organismic and Evolutionary Biology and Center for Brain Science, Harvard 
+7 
+University; Cambridge, MA 02138, USA. 
+8 
+2DeepMind, Google; 5 New Street Square, London, EC4A 3TW 
+9 
+3Gatsby Computational Neuroscience Unit, University College London, 46 Cleveland Street, 
+10 
+London W1T 4JG 
+11 
+ 
+12 
+Current address for D.A and J.M: Fauna Robotics, 900 Broadway, Suite 903, New York, NY 
+13 
+10003 
+14 
+Current address for JDM: Reality Labs, Meta; 421 8th Ave, New York, NY 10001 
+15 
+*Corresponding author. Email: diegoaldarondo@g.harvard.edu, olveczky@fas.harvard.edu 
+16 
+. 
+17 
+ 
+18 
+Abstract:  
+19 
+Animals have exquisite control of their bodies, allowing them to perform a diverse range of 
+20 
+behaviors. How such control is implemented by the brain, however, remains unclear. Advancing 
+21 
+our understanding requires models that can relate principles of control to the structure of neural 
+22 
+activity in behaving animals. To facilitate this, we built a ‘virtual rodent’, in which an artificial 
+23 
+neural network actuates a biomechanically realistic model of the rat 1 in a physics simulator 2. We 
+24 
+used deep reinforcement learning 3–5  to train the virtual agent to imitate the behavior of freely-
+25 
+moving rats, thus allowing us to compare neural activity recorded in real rats to the network 
+26 
+activity of a virtual rodent mimicking their behavior. We found that neural activity in the 
+27 
+sensorimotor striatum and motor cortex was better predicted by the virtual rodent’s network 
+28 
+activity than by any features of the real rat’s movements, consistent with both regions 
+29 
+implementing inverse dynamics 6. Furthermore, the network’s latent variability predicted the 
+30 
+structure of neural variability across behaviors and afforded robustness in a way consistent with 
+31 
+the minimal intervention principle of optimal feedback control 7. These results demonstrate how 
+32 
+physical simulation of biomechanically realistic virtual animals can help interpret the structure of 
+33 
+neural activity across behavior and relate it to theoretical principles of motor control. 
+34 
+ 
+35 
+Main Text:  
+36 
+Humans and animals control their bodies with an ease and efficiency that has been difficult to 
+37 
+emulate in engineered systems. This lack of computational analogues has hindered progress in 
+38 
+ACCELERATED ARTICLE PREVIEW
+
+
+--- PAGE 3 ---
+
+ 
+motor neuroscience, as neural activity in the motor system is only rarely interpreted relative to 
+39 
+models that causally generate complex, naturalistic movement 8–11. In lieu of such generative 
+40 
+models, neuroscientists have tried to infer motor system function by relating neural activity in 
+41 
+relevant brain areas to measurable features of movement, such as the kinematics and dynamics of 
+42 
+different body parts 12–15. This is problematic because movement features are inherently correlated 
+43 
+through physics, and the representational models based on them can only describe behavior, not 
+44 
+causally generate it 8,16. Here, we propose an alternative approach: to infer computational 
+45 
+principles of biological motor control by relating neural activity in motor regions to models that 
+46 
+implement their hypothesized functions and replicate the movements and behaviors of real animals 
+47 
+(Fig. 1 A-B).  
+48 
+ 
+49 
+To enable this line of inquiry and probe its utility, we developed a virtual rodent by training 
+50 
+artificial neural networks (ANNs) controlling a biomechanically realistic model of the rat to 
+51 
+reproduce natural behaviors of real rats. This allowed us to relate neural activity recorded from 
+52 
+real animals to the network activity of the virtual rodent performing the same behaviors. Analogous 
+53 
+approaches have proven successful in relating the structure of neural activity to computational 
+54 
+functions in other domains, including vision 17–19, audition 20, olfaction 21,22, thermosensation 23, 
+55 
+perceptual discrimination 24, facial perception 25, and navigation 26,27. However, there have been 
+56 
+relatively few attempts to similarly model the neural control of movement, and those that did, 
+57 
+mainly probed how artificial controllers resemble neural activity during specific motor tasks or 
+58 
+across a limited range of behaviors or effectors. Regardless, these pioneering efforts demonstrated 
+59 
+the capacity of simple brain-inspired controllers to reproduce animal locomotion 10,28,29, showed 
+60 
+how biomechanics can influence neural representations of movement 9, and revealed similarities 
+61 
+between the representations of movement in artificial and biological neural networks 8,30,31.  
+62 
+ 
+63 
+Modeling the neural control of diverse, natural behaviors is a larger undertaking with several 
+64 
+unique challenges. Importantly, because animals evolved to skillfully control their bodies to solve 
+65 
+challenges in complex environments 32, our models should control biomechanically realistic bodies 
+66 
+in closed-loop with physically realistic environments 7. Furthermore, since animals express a 
+67 
+diverse range of species-typical behaviors, our models should be able to replicate these 33. Finally, 
+68 
+our models should demonstrate robustness to neural noise and other sources of variability inherent 
+69 
+to biological control systems 7,34. Modeling the neural control of movement at this degree of 
+70 
+richness and realism has been hampered by a scarcity of high-fidelity 3D kinematic measurements, 
+71 
+tools to physically simulate animal bodies, and methods to build agents that replicate the diversity 
+72 
+of animal behavior.  
+73 
+ 
+74 
+To overcome these challenges, we developed a processing pipeline called MIMIC (Motor 
+75 
+IMItation and Control) (Fig. 1 C-F, Supplementary Video 1). MIMIC leverages 3D animal pose 
+76 
+estimation 35 and an actuatable skeletal model 1 amenable to simulation in MuJoCo 2, a physics 
+77 
+engine, to build a virtual rodent that can imitate natural behavior under realistic constraints. 
+78 
+Specifically, MIMIC uses deep reinforcement learning 3,4 to train ANNs to implement an inverse 
+79 
+dynamics model, a function which specifies the actions (i.e. joint torques) required to achieve a 
+80 
+desired state (i.e. body configuration) given the current state. We used the ANNs to control a 
+81 
+biomechanical model of the rat, training it to imitate the movements of real rats across their 
+82 
+behavioral repertoire. This allowed us to directly compare neural activity in freely moving animals 
+83 
+to the activations of inverse dynamics models enacting the same behaviors.  
+84 
+ACCELERATED ARTICLE PREVIEW
+
+
+--- PAGE 4 ---
+
+ 
+ 
+85 
+We used this approach to interpret neural activity in the sensorimotor striatum (dorsolateral 
+86 
+striatum in rodents, DLS) and motor cortex (MC) of rats, two hierarchically distinct structures of 
+87 
+the mammalian motor system for which the neural representation of natural behaviors have 
+88 
+previously been described 36–39. We found that the structure of neural activity across behaviors was 
+89 
+better predicted by the virtual rodent's network activity than any kinematic or dynamic feature of 
+90 
+movement in the recorded rat, consistent with a role for both regions in implementing inverse 
+91 
+dynamics. Furthermore, by perturbing the network’s latent variability, we found that it structures 
+92 
+action variability to achieve robust control across a diverse repertoire of behavior in a manner 
+93 
+consistent with theoretical principles of optimal feedback control7. Furthermore, the network 
+94 
+activity was predictive of the structure of neural variability across behaviors, suggesting that the 
+95 
+brain structures variability in accordance with these principles. 
+96 
+ 
+97 
+ 
+98 
+Results: 
+99 
+To compare an artificial control system to a real brain producing natural behaviors requires 
+100 
+measuring the full-body kinematics and neural activity of real animals. To this end, we recorded 
+101 
+the behavior of freely-moving rats in a circular arena with an array of six cameras while measuring 
+102 
+neural activity from the DLS or MC (DLS: 3 animals, 353.5 hours, 1249 neurons; MC: 3 animals, 
+103 
+253.5 hours, 843 neurons) with custom 128-channel tetrode drives (Fig. 1 C, Extended Data Fig. 
+104 
+1). To infer full-body kinematics from the videos, we tracked the 3D position of 23 anatomical 
+105 
+landmarks (keypoints) on the animal using DANNCE 35 (Fig. 1 D, Extended Data Fig. 2 A-C, 
+106 
+Supplementary Video 2). We used a feature extraction, embedding, and clustering approach to 
+107 
+identify discrete behaviors from kinematic data, as described previously 40–43. To enable physical 
+108 
+simulation in MuJoCo 2, we registered a skeletal model of the rat 1 with 74 degrees-of-freedom 
+109 
+(38 controllable degrees-of-freedom) to the keypoints using a custom implementation of the 
+110 
+simultaneous tracking and calibration (STAC) 44 algorithm (Fig. 1 E, Extended Data Fig. 2 D-F, 
+111 
+Supplementary Video 3). We next compiled a diverse catalog of behavioral motifs (847 5-second 
+112 
+snippets) spanning the behavioral repertoire of the rat to provide training data for our ANN 
+113 
+controllers.  
+114 
+ 
+115 
+Controlling a complex body to perform diverse natural behaviors requires a remarkable degree of 
+116 
+flexibility in the underlying control system. Biological control systems are widely believed to 
+117 
+achieve such flexibility by implementing internal models, i.e., neural computations that 
+118 
+approximate the complex dynamics of the body. Here, we focus on the simplest feedback 
+119 
+controller that uses an internal model to recapitulate the behavioral repertoire of the rat (see 
+120 
+Supplementary Discussion 1). This minimal controller takes as inputs the current state of the body, 
+121 
+its desired future state, and uses an internal model called an inverse dynamics model to estimate 
+122 
+the action required to achieve the desired future state given the current state 4,6. Despite its 
+123 
+relatively simple formulation, building a single controller that replicates diverse behaviors while 
+124 
+controlling a complex body is a challenging task for which performant methods have only recently 
+125 
+been developed 3–5,45.  
+126 
+ 
+127 
+Therefore, to build virtual rodents that imitate real animal behavior, we trained ANNs to 
+128 
+implement inverse dynamics models using deep reinforcement learning as in recent work (Fig. 1F) 
+129 
+3,4. The networks accepted as input a reference trajectory of the real animal’s future movements 
+130 
+ACCELERATED ARTICLE PREVIEW
+
+
+--- PAGE 5 ---
+
+ 
+and combined a compressed representation of the reference trajectory with the current state of the 
+131 
+body to generate an action, thus implementing an inverse dynamics model (Fig. 2 A). For ease of 
+132 
+discussion, we refer to the subnetwork that encodes the reference trajectory as the ‘encoder’, and 
+133 
+the remainder of the network as the ‘decoder’. The state vector was defined as the joint angular 
+134 
+position and velocity of the virtual rodent’s full-body pose, as well as simulated measurements 
+135 
+from inertial and force sensors. The reference trajectory was defined as the states (excluding the 
+136 
+inertial and force sensors) visited by the real rat in the immediate future (ranging from 20-200 ms), 
+137 
+expressed relative to the current state of the virtual rodent’s body. The action was defined as 
+138 
+torques at 38 actuators (joints) along the body. The networks operated over short timescales to 
+139 
+generate actions that moved the virtual rodent in the simulated environment, running at 50 Hz in a 
+140 
+sliding-window fashion to imitate arbitrarily long bouts of behavior. To study how different 
+141 
+network architectures and hyperparameters impacted imitation performance, we varied the decoder 
+142 
+architecture, regularization of the latent encoding, presence of autoregression, definition of the 
+143 
+action, and reference trajectory duration. During training, the states visited by the virtual rodents 
+144 
+were compared to the reference trajectory of the animal being imitated. This allowed us to calculate 
+145 
+the reward at each frame using multiple objectives related to different kinematic and dynamic 
+146 
+features of movement (see methods). Through trial-and-error, the networks learned to produce 
+147 
+actions that moved the body of the virtual rodent in ways that matched the real animal’s movements 
+148 
+(Supplementary Video 1).  
+149 
+ 
+150 
+Controlling a high degree-of-freedom body to imitate diverse animal movements is a challenging 
+151 
+task for which the performance and generalization of artificial agents has only recently been 
+152 
+characterized 3–5,45. Remarkably, not only did the virtual rodent reliably and faithfully replicate 
+153 
+movements in the training set, but the ANN controllers also generalized to held-out movements 
+154 
+(Fig. 2 B-E, Extended Data Fig. 3). This success in imitating unseen examples allowed us to 
+155 
+evaluate the virtual rodent over the entirety of our dataset. To do so efficiently, we divided the 
+156 
+607-hour dataset into contiguous 50 second chunks, and ran the networks over all chunks in 
+157 
+parallel. We found that all trained networks were capable of faithful imitation, but networks with 
+158 
+recurrent decoders outperformed other architectures (Extended Data Fig. 3 A, B), particularly 
+159 
+during slower movements (Extended Data Fig. 3 C, D). For these networks, most of the deviations 
+160 
+from the real rat’s kinematics could be attributed to accumulation of error in the center of mass 
+161 
+over time (Fig. 2 D-F). To mitigate this, we implemented a termination and reset condition that 
+162 
+was triggered when the virtual rodents deviated excessively from the reference trajectory (see 
+163 
+methods). We used this to derive a measure of imitation robustness 46 by analyzing the distribution 
+164 
+of durations between resets, which we refer to as episode durations. Regardless of the specific 
+165 
+ANN implementation, the virtual rodent showed remarkable robustness, imitating long bouts of 
+166 
+behavior without termination (Fig. 2 G, Extended Data Fig. 3 B). Given the short timescale nature 
+167 
+of the inverse dynamics models, we wondered whether providing the networks with more context 
+168 
+about the upcoming movements would result in more robust control. For the most performant 
+169 
+architectures, increasing the length of the reference trajectory resulted in models with greater 
+170 
+robustness at the expense of imitation performance (Extended Data Fig. 3 G-I), suggesting a 
+171 
+tradeoff between robustness and imitation fidelity when selecting the duration of the reference 
+172 
+trajectory.  
+173 
+ 
+174 
+Having models that faithfully imitate natural behaviors of real rats allowed us to compare neural 
+175 
+activity in real animals to the activations of a virtual rodent performing the same behaviors (Fig. 3 
+176 
+ACCELERATED ARTICLE PREVIEW
+
+
+--- PAGE 6 ---
+
+ 
+A). To compare the dynamics of real and virtual control systems, we performed encoding analysis 
+177 
+and representational similarity analysis, established methods that allowed us to probe the 
+178 
+correspondences both at the levels of single neuron activity and population activity structure. To 
+179 
+establish a baseline and a point of reference, we estimated the extent to which measurable or 
+180 
+inferable features of behavior (representational models) relating to the kinematics and dynamics 
+181 
+of movement (Fig. 1B) could predict the activity of putative single-units (20 ms bins) in held-out 
+182 
+data using Poisson generalized linear models (GLMs). Consistent with previous reports 36,39,47, the 
+183 
+most predictive representational feature was pose (Fig. 3 B-C), with the activity of individual 
+184 
+neurons being best predicted by the kinematics of different body parts (Extended Data Fig. 4 A-
+185 
+D).  
+186 
+ 
+187 
+We next compared the predictivity of the inverse dynamics models against representational 
+188 
+models. While we focus on a network drawn from the most performant class of models, namely 
+189 
+those with recurrent decoders, we note that all architectures exhibited qualitatively similar results. 
+190 
+Because the virtual rodent produced behaviors that deviated slightly from those of real rats (Fig. 2 
+191 
+D-E), our inverse dynamics model started at a disadvantage relative to the representational models, 
+192 
+which were referenced to the real rat’s movements. Despite this handicap, we found that the 
+193 
+inverse dynamics model predicted the activity in both brain regions significantly better than any 
+194 
+representational model, with the best results coming from the first layer of the decoder (Fig. 3 B-
+195 
+D, Extended Data Fig. 4 E-H, Extended Data Fig. 10). We observed similar results across striatal 
+196 
+cell types (see methods) (Extended Data Fig. 5). To estimate the temporal relationships between 
+197 
+neural activity, kinematics, and our inverse dynamics model, we trained GLMs using different 
+198 
+temporal offsets between the predictors and neural activity. Most neurons in DLS and MC were 
+199 
+premotor, meaning that their neural activity was best predicted by future kinematics and concurrent 
+200 
+activations of the inverse dynamics model (Extended Data Fig. 6).   
+201 
+ 
+202 
+To analyze the structure of population activity in MC and DLS across behaviors and assess the 
+203 
+degree to which it is captured by representational models and inverse dynamics models, we 
+204 
+performed representational similarity analysis (RSA) 48. For our purposes, this involved 
+205 
+quantifying how different model features were structured across behaviors using a representational 
+206 
+dissimilarity matrix (RDM) and comparing the RDMs generated from representational features or 
+207 
+activations of the inverse dynamics models with those generated from neural population activity 
+208 
+in DLS and MC. For all features, we computed RDMs by calculating the average vector for each 
+209 
+behavior and computing the pairwise distance between these vectors using the cross-validated 
+210 
+Mahalanobis distance (see methods). While we focused on the most performant network, we note 
+211 
+that all networks exhibited qualitatively similar results. Individual neurons in DLS and MC were 
+212 
+preferentially tuned to specific behavioral categories, resulting in RDMs that reflect the population 
+213 
+activity structure across behaviors (Fig. 4 A, B). We found that the neural population activity 
+214 
+RDMs of both DLS and MC were more similar to the inverse dynamics model RDMs than those 
+215 
+of the representational models (Fig. 4 C-E). Moreover, when comparing across networks, we found 
+216 
+that the similarity between RDMs constructed from inverse dynamics models and neural activity 
+217 
+in DLS and MC was strongly correlated with the imitation performance and robustness of the 
+218 
+network (Fig. 4 F-I). This suggests that more performant models exhibit representations more 
+219 
+similar to those of both DLS and MC, consistent with previous reports comparing neural activity 
+220 
+with task-optimized neural networks 17,20. 
+221 
+ 
+222 
+ACCELERATED ARTICLE PREVIEW
+
+
+--- PAGE 7 ---
+
+ 
+To verify that the increased predictivity of inverse dynamics models relative to representational 
+223 
+models was a result of learning the dynamics of a realistic body, we changed the body to see if it 
+224 
+affected the fidelity of behavioral imitation and neural predictivity of our models. In a ‘mass 
+225 
+scaling’ experiment, we trained the virtual rodent to control bodies with total masses that varied 
+226 
+from half to twice the standard mass. In a ‘relative head scaling’ experiment, we trained it to 
+227 
+control bodies where the mass of the head relative to the rest of the body varied from half to twice 
+228 
+the standard ratio, while maintaining the same total mass. These subtle modifications to the body 
+229 
+model frequently resulted in policies with degraded imitation performance (Extended Data Fig. 7 
+230 
+A, B; Extended Data Fig. 8 A, B). They also reduced overall putative single-unit predictivity from 
+231 
+features of many inverse dynamics models (Extended Data Fig. 7 C, D; Extended Data Fig. 8 C, 
+232 
+D) and occasionally reduced the representational similarity to neural activity (Extended Data Fig. 
+233 
+7 E, F; Extended Data Fig. 8 E, F). These results show that subtle changes to the body model can 
+234 
+affect both the virtual rodent’s behavior and neural predictivity.  
+235 
+ 
+236 
+We next studied how the predictivity of our inverse dynamics models compared to that of ANNs 
+237 
+implementing other control functions. To test this, we used data from the most performant inverse 
+238 
+dynamics model (see methods) to train ANNs via supervised learning 49,50 to implement a forward 
+239 
+model and a sequential forecasting model (Extended Data Fig. 9 A-C). Neither model could predict 
+240 
+putative single-unit activity in MC or DLS more accurately than the inverse dynamics model 
+241 
+(Extended Data Fig. 10 A-B). Similarly, neither model could predict the representational similarity 
+242 
+structure of MC and DLS as well as the inverse dynamics model (Extended Data Fig. 9 D-F), 
+243 
+consistent with these brain areas reflecting computations associated with inverse dynamics.  
+244 
+ 
+245 
+In addition to imitating animal behavior and predicting the structure of neural activity, simulated 
+246 
+controllers allow us to study control processes that are difficult to access experimentally. A long-
+247 
+standing question that can be uniquely studied in this way relates to how movement variability is 
+248 
+shaped by the nervous system. It has been widely observed that animals structure movement 
+249 
+variability differently depending on the task, with variability preferentially quenched along task-
+250 
+relevant dimensions in accordance with the minimal intervention principle 7,51,52. In the context of 
+251 
+optimal feedback control, such ‘structured variability’ is thought to result from regularizations of 
+252 
+the cost functions associated with movement generation 52, such as the minimization of jerk 53 or 
+253 
+energy expenditure. However, with the notable exception of signal-dependent noise 54, how neural 
+254 
+activity in biological control networks shapes variability in motor output remains largely 
+255 
+unexplored (though see 55). To address this, we leveraged the stochastic nature of our inverse 
+256 
+dynamics models to study whether and how its ‘neural’ variability structured action variability.  
+257 
+ 
+258 
+To probe the relationship between ‘neural’ variability and action variability, we focused on two 
+259 
+components of the network: the latent variability, a part of the latent encoding that parametrizes 
+260 
+the variability of a 60-dimensional Gaussian distribution, and the action the network outputs. We 
+261 
+used the generative nature of the latent encoding to relate latent variability at a given time point 
+262 
+(‘instantaneous’ latent variability) to the variability of the distribution of actions that emerge from 
+263 
+repeated resampling of this latent encoding (‘instantaneous’ action variability; Fig. 5 A). We use 
+264 
+the phrase instantaneous variability to differentiate from other types of variability, such as trial-to-
+265 
+trial variability or temporal variability. Importantly, these quantities can only be directly accessed 
+266 
+through simulation. 
+267 
+ 
+268 
+ACCELERATED ARTICLE PREVIEW
+
+
+--- PAGE 8 ---
+
+ 
+To determine whether the virtual rodent’s actions exhibited structured variability, we estimated 
+269 
+the instantaneous action variability at each timepoint (Fig. 5 A), and averaged across behavioral 
+270 
+categories. As in biological controllers, the structure of variability across the model’s actuators 
+271 
+showed a strong dependence on the behavior (i.e., the task) being performed (Fig. 5 B). However, 
+272 
+unlike in biological controllers, signal-dependent noise cannot contribute to this structured 
+273 
+variability as none of the sources of variability in the network were signal-dependent by 
+274 
+construction. Consistent with action variability being controlled by the network’s latent variability, 
+275 
+we found that their dissimilarity structure across behaviors were similar (Fig. 5 C), with individual 
+276 
+latent dimensions expanding or contracting their variability as the virtual rodent performed 
+277 
+different behaviors (Fig. 5 D). Indeed, the behavioral dependence was so strong that the latent 
+278 
+variability alone was sufficient to identify the behavior enacted at any given time (Fig. 5 E). To 
+279 
+relate the latent variability structure across behavior in the virtual rodent with the neural variability 
+280 
+structure of real animals, we compared RDMs derived from the latent variability and the temporal 
+281 
+variability of neural activity evaluated over a one second moving window (See methods). 
+282 
+Intriguingly, the latent variability structure resembled that of the temporal variability of neural 
+283 
+activity across behaviors (Extended Data Fig. 9 G-I), suggesting that the inverse dynamics models 
+284 
+predict not only the structure of neural activity but also its variability.  
+285 
+ 
+286 
+To determine whether the structure of the virtual rodent’s latent variability afforded robustness in 
+287 
+accordance with the minimal intervention principle, we changed it in two different ways. We made 
+288 
+the variability across all dimensions of the latent encoding uniform and, in a different simulation, 
+289 
+inverted the variability, i.e., quenching it in dimensions with normally high variability and vice 
+290 
+versa (see methods) (Fig. 5 F). These deviations from the virtual rodent’s learned variability 
+291 
+structure resulted in poorer imitation and more frequent failures at equal noise levels (Fig. 5  F-H), 
+292 
+consistent with the system’s variability structure obeying the minimal intervention principle 7. To 
+293 
+be clear, we do not suggest that the latent variability itself improves performance or robustness. In 
+294 
+fact, models with stronger latent regularization, and thus greater latent variability, performed 
+295 
+slightly worse in terms of imitation reward and robustness on the testing set (Extended Data Fig. 
+296 
+3 E-F). Instead, these results, coupled with the training objective (see Supplementary Discussion 
+297 
+2), show that the virtual rodent adaptively shapes latent variability to increase robustness according 
+298 
+to behavioral demands (Fig. 5 I), affording robustness in the face of unquenchable noise. This 
+299 
+structured variability emerges solely from latent variable compression, suggesting a link between 
+300 
+mechanisms for robustness and generalizability (see also 25,56).  
+301 
+ 
+302 
+Discussion: 
+303 
+How the brain achieves robust and flexible control of complex bodies has remained a puzzle in 
+304 
+large measure due to the lack of expressivity in our models and their reductionist nature. Here, we 
+305 
+address these limitations by taking a holistic approach to sensorimotor control that emphasizes 
+306 
+embodiment, sensory feedback, stochastic control, and diverse behavior. Our approach reflects a 
+307 
+belief that motor system function cannot be understood independent of the body it evolved to 
+308 
+control or the behaviors it evolved to produce (Fig. 1A).  
+309 
+ 
+310 
+To demonstrate the utility of this approach, we developed a virtual rodent in which a fully 
+311 
+configurable and transparent ANN controls a biomechanically realistic model of a rat in a physics 
+312 
+simulator (See Supplementary Discussion 3). In constructing such a system, we needed to balance 
+313 
+tractability, expressivity, and biological realism, both at the level of the biomechanical plant and 
+314 
+ACCELERATED ARTICLE PREVIEW
+
+
+--- PAGE 9 ---
+
+ 
+its controller. In this work, we opted for the simplest model that could recapitulate the behavioral 
+315 
+repertoire of the rat and predict the structure of neural activity in the brain across behavior. The 
+316 
+result was a plant with point-torque actuation and a controller implementing inverse dynamics. 
+317 
+Our simulations show that this level of model abstraction, which notably omits muscular actuation, 
+318 
+is already sufficient to achieve our objectives. As we and others extend these biomechanical 
+319 
+models to include whole-body musculoskeletal actuation, it will be interesting to probe the degree 
+320 
+to which such increased biomechanical realism further informs our understanding of the neural 
+321 
+control of movement. 
+322 
+ 
+323 
+To train the virtual rodents to replicate spontaneous behaviors of real rats (Fig. 2), we developed 
+324 
+an imitation learning pipeline, MIMIC (Fig. 1 C-F). Remarkably, we found that the virtual rodents 
+325 
+generalized to unseen movements across the entirety of our dataset with high fidelity and 
+326 
+robustness (Fig. 2, Extended Data Fig. 3). In comparing the network activations to neural 
+327 
+recordings in real rats performing the same behaviors, we found that our model explained the 
+328 
+structure of recorded neural activity across a wide range of naturalistic behaviors better than any 
+329 
+traditional representational model (Figs. 3-4). Because the virtual rodent’s ANN implements an 
+330 
+inverse dynamics model, the observation that its network activations predict single-unit and 
+331 
+population neural activity in DLS and MC more accurately than measurable features of movement 
+332 
+or alternative control functions is consistent with these regions taking part in implementing inverse 
+333 
+dynamics.  
+334 
+ 
+335 
+We believe that the improvements in predictivity relative to representational models result from 
+336 
+incorporating bodily dynamics, including the influences of gravity, friction, inertia, and 
+337 
+interactions between body parts. Note however, that one should ostensibly be able to find a 
+338 
+combination of measurable representational features that predicts neural activity as well as our 
+339 
+models. In fact, this is what our models do. They learn a nonlinear function, parametrized by a 
+340 
+neural network, that transforms the kinematics of desired future movements into the dynamics 
+341 
+required to achieve those kinematics. The network does this by encoding the physical realities of 
+342 
+bodily control in its weights; i.e., it learns an inverse dynamics model. There are at least two major 
+343 
+advantages of our approach relative to approaches based on representation. First, the models we 
+344 
+train are causal - they are sufficient to physically reproduce the behavior of interest as opposed to 
+345 
+merely describing it. Second, they place the emphasis on identifying the functions that brain 
+346 
+regions implement as opposed to merely describing the flow of information.   
+347 
+ 
+348 
+Previous work in brain-machine interfaces 57 and oculomotor control 58 has similarly related neural 
+349 
+activity in the motor system to inverse dynamics models. Our work extends these findings to the 
+350 
+domain of full-body control and across a diverse behavioral repertoire. We note that a neural code 
+351 
+consistent with inverse dynamics could reflect and support other processes, including motor 
+352 
+learning 59 or even different control functions. However, in our experiments, models trained to 
+353 
+implement forward dynamics and sequential forecasting did not fare as well in predicting neural 
+354 
+activity structure (Extended Data Fig. 9 A-F), although we note that these controls may differ from 
+355 
+internal models (e.g. state estimation, forward dynamics models, etc.) implemented in a composite 
+356 
+controller 60. In future work, a more comprehensive understanding of the relationship between 
+357 
+control functions and neural activity structure could be achieved by comparing the network 
+358 
+activations of such composite controllers to neural recordings in brain regions believed to 
+359 
+implement different internal models.  
+360 
+ACCELERATED ARTICLE PREVIEW
+
+
+--- PAGE 10 ---
+
+ 
+ 
+361 
+While noise is inherent to biological control, how the nervous system deals with it to ensure 
+362 
+robustness and flexibility remains unclear 61. The minimal intervention principle speaks to this, 
+363 
+explaining that controllers quench movement variability along dimensions relevant to performance 
+364 
+7,51. By leveraging stochastic ANN controllers (Fig. 2 A), the virtual rodent allowed us to study 
+365 
+the relationship between network variability and variability in motor output. Intriguingly, we found 
+366 
+that the virtual rodent ‘brain’ regulated its latent variability to control action variability in 
+367 
+accordance with the minimal intervention principle 7 (Fig. 5). The structure of variability emerged 
+368 
+from training the network to balance latent variable compression, implemented to support 
+369 
+generalization, and the ability to faithfully imitate over the training set (Supplementary Discussion 
+370 
+2). Thus,  managing the trade-off between latent variable compression and motor performance 25,56 
+371 
+may structure neural variability in ways that are distinct from previously hypothesized mechanisms 
+372 
+like signal-dependent noise 54 or energy constraints 7. Together, these results reveal a link between 
+373 
+a computational mechanism for generalization (latent variable compression) and one for 
+374 
+robustness in control (structured variability). That the virtual rodent’s latent variability predicts the 
+375 
+structure of neural variability across behaviors in DLS and MC (Extended Data Fig. 9 G-I) further 
+376 
+suggests that the brain may structure neural variability in accordance with these principles.  
+377 
+ 
+378 
+More generally, our results demonstrate how artificial controllers actuating biomechanically 
+379 
+realistic models of animals can help uncover the computational principles implemented in neural 
+380 
+circuits controlling complex behavior. We believe the potential of this approach is significant and 
+381 
+untapped. Virtual animals trained to behave like their real counterparts could provide a platform 
+382 
+for virtual neuroscience to model how neural activity and behavior are influenced by variables like 
+383 
+feedback delays, latent variability, and body morphology that would otherwise be difficult or 
+384 
+impossible to experimentally deduce. Inverse dynamics models trained to reproduce diverse and 
+385 
+realistic behaviors could also be reused as low-level modules to promote naturalistic movement in 
+386 
+neural networks trained to autonomously perform tasks, including those common in neuroscience 
+387 
+research 3,4. Similarly, since the ANNs controlling the virtual rodent are fully configurable, future 
+388 
+iterations could aim to implement brain-inspired network architectures to improve performance 
+389 
+and interpretability and probe the roles of specific circuit motifs and neural mechanisms in 
+390 
+behaviorally relevant computations. 
+391 
+ 
+392 
+ 
+393 
+Acknowledgements: 
+394 
+ 
+395 
+We thank Max Shad and the team at Harvard Research Computing for their technical support. We 
+396 
+are grateful to Steffen Wolff, Kiah Hardcastle, and Julia Casas for their support with experimental 
+397 
+procedures. We would also like to thank Sean Escola for feedback on our manuscript. This work 
+398 
+was supported by an NIH D-SPAN Award (1F99NS125834-01A1) to D. A. and NIH grants 
+399 
+(R01NS099323, R01GM136972) to B.P.Ö. The illustration of the rat in Figure 1a was hand drawn 
+400 
+by D.A from a model licensed from Biosphera3D.  
+401 
+ 
+402 
+Ethics Statements: 
+403 
+ 
+404 
+The authors declare no competing interests.  
+405 
+ 
+406 
+ACCELERATED ARTICLE PREVIEW
+
+
+--- PAGE 11 ---
+
+ 
+Data availability 
+407 
+The data generated from real animals are publicly available on Harvard Dataverse.  
+408 
+https://dataverse.harvard.edu/privateurl.xhtml?token=901f9759-9955-4bb0-8e6a-7c8ef726e77c 
+409 
+To help us understand usage, provide support, fulfill custom requests, and encourage collaboration, 
+410 
+we ask that users contact us when considering using this dataset. 
+411 
+ 
+412 
+Due to their size, the data generated in simulation will be made available upon reasonable request.  
+413 
+ 
+414 
+Code availability 
+415 
+ 
+416 
+Code for all analyses will be made available from the corresponding authors upon reasonable 
+417 
+request.  
+418 
+ 
+419 
+Repositories for skeletal registration (STAC), behavioral classification (motion-mapper), and 
+420 
+inverse 
+dynamic 
+model 
+inference 
+are 
+available 
+at 
+421 
+https://github.com/diegoaldarondo/virtual_rodent.  
+422 
+ 
+423 
+Author Contribution Statement 
+424 
+ 
+425 
+D.A., J.M., J.D.M., G.W., M.B., and B.P.Ö. conceived the project idea. D.A., U.K., and A.G. 
+426 
+carried out the experiments. D.A. and U.K. processed the data. J.M. and L.H. trained the inverse 
+427 
+dynamics models. D.A., J.M., J.D.M., and Y.T. contributed to the biomechanical model. D.A. 
+428 
+analyzed the data. D.A., J.M., J.D.M., L.H., M.B., and B.P.Ö. contributed to the interpretation of 
+429 
+the results. D.A., J.M., J.D.M., and B.P.Ö. wrote the manuscript with input from all authors.  
+430 
+ 
+431 
+ 
+432 
+ 
+433 
+434 
+ACCELERATED ARTICLE PREVIEW
+
+
+--- PAGE 12 ---
+
+ 
+Figure 1. Comparing biological and artificial control across the behavioral repertoire with 
+435 
+MIMIC.   
+436 
+A) To compare neural activity in behaving animals to computational functions in control, we 
+437 
+trained ANNs actuating a biomechanical model of the rat to imitate the behavior of real rats. B) 
+438 
+(Top) Representational approaches in neuroscience interpret neural activity in relation to 
+439 
+measurable features of movement. Computational approaches, in contrast, can relate neural 
+440 
+activity to specific control functions, such as internal models. C-F) The MIMIC pipeline. C) (Left) 
+441 
+Schematic of experimental apparatus for behavioral and electrophysiological recording. A tetrode 
+442 
+array recorded electrical activity of neurons in DLS or MC. (Right) Example images taken during 
+443 
+a walking sequence. D) (Left) Schematic of the DANNCE pose estimation pipeline. Multi-view 
+444 
+images were processed by a U-net to produce keypoint estimates. (Right) Walking sequence with 
+445 
+overlaid keypoint estimates. E) (Left) We registered a skeletal model of the rat to the keypoints in 
+446 
+each frame using STAC. (Right) Walking sequence with overlaid skeletal registration. F) We 
+447 
+trained an ANN to actuate the biomechanical model in MuJoCo to imitate the reference 
+448 
+trajectories. (Right) Walking sequence simulated in MuJoCo. 
+449 
+ 
+450 
+Figure 2. Training artificial agents to imitate rat behavior with MIMIC. 
+451 
+A) We train a virtual rodent to imitate the 3D whole-body movements of real rats in MuJoCo with 
+452 
+deep reinforcement learning (see methods). All networks implement an inverse dynamics model 
+453 
+which produces the actions required to realize a reference trajectory given the current state. All 
+454 
+simulated data in this figure are derived from models with LSTM decoders. B) (Left) Keypoint 
+455 
+trajectories of the real rat and (Right) model-derived keypoint trajectories of the virtual rat 
+456 
+imitating the real rat’s behavior (Top, anterior-posterior axis; Bottom, height from the floor). C) 
+457 
+Example sequences of a rat performing different behaviors. Overlays rendered in MuJoCo depict 
+458 
+the imitated movements. D) Imitation on held-out data is accurate for all body parts and E) across 
+459 
+different behaviors. The total error is the average Euclidean distance between the model and 
+460 
+anatomical keypoints, while the pose error indicates the Euclidean distance up to a Procrustes 
+461 
+transformation without scaling. Box centers indicate median, box limits indicate interquartile 
+462 
+range, box whiskers indicate the maximum or minimum values up to 1.5 times the interquartile 
+463 
+range from the box limits. Panels B-E feature data from a model with a recurrent decoder and a 
+464 
+KL regularization of 1e-4. F) Accumulation of error as a function of time from episode initiation. 
+465 
+Deviations from the reference trajectory accumulate over time, with drift in the position of the 
+466 
+center of mass accounting for much of the total error. G) The proportion of episodes exceeding a 
+467 
+given duration. Shaded regions indicate the standard error of the mean across all models with 
+468 
+LSTM decoders. Panels D-G include data from 28 3-hour sessions, with 4 sessions drawn from 
+469 
+each of 7 animals.  
+470 
+ 
+471 
+Figure 3. Neural activity in DLS and MC is best predicted by an inverse dynamics model. 
+472 
+A) MIMIC enables comparisons of neural activity to measurable features of behavior and ANN 
+473 
+controller activations across a diverse range of behaviors. (Top) Aligned keypoint trajectories and 
+474 
+spike rasters for DLS neurons over a fifty-second clip of held-out behavior. (Bottom) Z-scored 
+475 
+activations of the artificial neurons comprising the model’s action layer, latent mean, and LSTM 
+476 
+cell layer 1 when imitating the same clip. The depicted network features an LSTM decoder and a 
+477 
+KL regularization coefficient of 1e-4. B) Proportion of neurons in DLS and MC best predicted by 
+478 
+each feature class. C) Box plots showing the distribution of cross-validated log-likelihood ratios 
+479 
+(CV-LLR) of GLMs trained to predict spike counts using different feature classes relative to mean 
+480 
+firing-rate models. Data includes neurons significantly predicted by each GLM (Benjamini-
+481 
+ACCELERATED ARTICLE PREVIEW
+
+
+--- PAGE 13 ---
+
+ 
+Hochberg corrected Wilcoxon signed-rank test, α = .05) from a total of N=732 neurons in DLS 
+482 
+and 769 neurons in MC. White lines indicate the median, boxes the interquartile range, and 
+483 
+whiskers the 10th and 90th percentiles. D) Comparing predictions from the best computational and 
+484 
+representational features for each neuron. GLMs based on the inverse dynamics models 
+485 
+outperform those based on representational features for the majority of classified neurons in both 
+486 
+DLS and MC (p < .001, one-sided permutation test).  
+487 
+ 
+488 
+Figure 4. The representational structure of neural populations in DLS and MC across 
+489 
+behaviors resembles that of an inverse model.  
+490 
+A) Average normalized firing rate for single units in DLS and MC as a function of behavior. B) 
+491 
+Average representational dissimilarity matrices (RDMs) for neural activity in DLS and MC, and 
+492 
+the average of layers in the encoder and decoder. Row and column indices are equal across RDMs 
+493 
+and sorted via hierarchical clustering on the average neural activity RDM across all animals. C-E) 
+494 
+Across-subject average of whitened-unbiased cosine (WUC) similarity between RDMs of different 
+495 
+computational and representational models and neural activity. Layers of the inverse dynamics 
+496 
+model predict the dissimilarity structure of neural activity in DLS and MC better than 
+497 
+representational models. Error bars indicate S.E.M. Icicles and dew drops indicate significant 
+498 
+differences from the noise ceiling and zero (Bonferroni corrected, α = .05, one-sided t-test). Gray 
+499 
+bars indicate the estimated noise ceiling of the true model. Open circles indicate the comparison 
+500 
+model, downward ticks on the wings extending from the comparison model indicate significant 
+501 
+differences between models (Benjamini-Hochberg corrected, false discovery rate α = .05, one-
+502 
+sided t-test). Points indicate individual animals (N=3 individuals in C and D, N=6 individuals in 
+503 
+E). F) Comparing average imitation reward and the mean WUC similarity with DLS or MC neural 
+504 
+activity on held-out data for all networks. The average WUC similarity is the average similarity of 
+505 
+all network layers relative to neural activity for a given network. Each point denotes a single 
+506 
+network across all animals for a given brain region. G) Comparison of average WUC similarity 
+507 
+and the average episode length for all networks. H, I) Same as F-G, except each point denotes a 
+508 
+single network-animal pair.   
+509 
+ 
+510 
+Figure 5. Stochastic controllers regulate motor variability as a function of behavior by 
+511 
+changing latent variability.  
+512 
+A) We estimate instantaneous action variability as the standard deviation of the set of actions 
+513 
+obtained by resampling the latent space 50 times at every step. To avoid long-term temporal 
+514 
+dependencies, simulations in this figure use a torque-actuated controller with a multi-layer 
+515 
+perceptron decoder and a KL regularization coefficient of 1e-3. B) Action variability differs as a 
+516 
+function of behavior (p < .001, one-sided permutation test; see methods). Each sphere corresponds 
+517 
+to a single actuator; its color and size indicate its normalized action variability during the 
+518 
+designated behavior. C) RDMs of action variability and latent variability across behaviors. D) 
+519 
+Trajectories of six latent dimensions along which variability was differentially regulated across 
+520 
+behavior. E) Scatter plot depicting the latent variability at single time points plotted on the first 
+521 
+two linear discriminants for three behavioral categories. The population latent variability 
+522 
+discriminates behaviors (p < .001, one-sided permutation test; see methods). F) Schematic 
+523 
+depicting changes to the structure of latent variability (see text). G) The deviations from normal 
+524 
+variability structure reduce the model’s robustness to noise (p < .001, one-sided Welch’s t-test) H) 
+525 
+and termination rate (p < .001, one-sided Chi-squared test). Lines indicate significant differences 
+526 
+ACCELERATED ARTICLE PREVIEW
+
+
+--- PAGE 14 ---
+
+ 
+between conditions. I) (Schematic) The latent variability is differentially shaped as a function of 
+527 
+behavior to structure action variability in accordance with the minimal intervention principle.  
+528 
+ 
+529 
+Methods  
+530 
+ 
+531 
+Data acquisition 
+532 
+ 
+533 
+Animals: The procedures involved in the care and experimental manipulation of all animals were 
+534 
+reviewed and approved by the Harvard Institutional Animal Care and Use Committee. 
+535 
+Experimental subjects included seven female Long Evans rats, aged 3-12 months at the start of 
+536 
+recording (Charles River).  
+537 
+ 
+538 
+Behavioral apparatus: Animals moved freely in a cylindrical arena of 1 meter in diameter elevated 
+539 
+on a custom-made wooden table. The circular base of the cylinder was made of green high-density 
+540 
+polyethylene cutting board. The walls were 60 cm tall and made of a 1 mm thick clear 
+541 
+polycarbonate sheet. The arena was surrounded by a commercial green screen to improve contrast 
+542 
+between the animals and their surroundings. The arena was illuminated by two white LED arrays 
+543 
+(Genaray SP-E-500B, Impact LS-6B stands) to aid kinematic tracking. To encourage movement, 
+544 
+three to six Cheerios were hung around the arena using pieces of string such that they were within 
+545 
+reach of the rats when rearing.  
+546 
+ 
+547 
+Videography: Six high-speed 2 megapixel Basler Ace-2 Basic cameras (a2A1920-160160ucBAS) 
+548 
+were equipped with 8mm lenses (Lens Basler 8 mm, C23-0824-5M, 2/3", f/2.4, 5 MP) and placed 
+549 
+surrounding the arena at regular intervals approximately 1.2 m from the center. Cameras were 
+550 
+stabilized with SLIK PRO 700DX tripods. All camera shutters were controlled synchronously by 
+551 
+a 50 Hz arduino hardware trigger via Phoenix Contact Sensor/actuator cables (SAC-6P-M 
+552 
+AMS/3.0-PUR SH - 1522309). Images were transmitted via Basler USB 3.0 cables to an 
+553 
+acquisition computer equipped with an Intel Core i9-9900K processor, a NVIDIA Quadro P4000, 
+554 
+a NVIDIA Geforce GTX 1550 Super, and a Samsung 970 Evo M.2 SSD. We used the Campy 
+555 
+camera acquisition software suite to encode videos from all cameras in real time 35.  
+556 
+ 
+557 
+Calibration: 
+Cameras 
+were 
+calibrated 
+using 
+tools 
+from 
+the 
+MATLAB 
+2020b 
+558 
+(https://www.mathworks.com/downloads/web_downloads/) and OpenCV-Python (4.4.0.46) 
+559 
+(https://pypi.org/project/opencv-python/#history) camera calibration libraries. For intrinsic 
+560 
+calibration, we used the MATLAB Single Camera Calibrator App with a checkerboard calibration 
+561 
+pattern to estimate the camera parameters for each camera individually. For extrinsic calibration 
+562 
+we placed the same checkerboard used for intrinsic calibration in the center of the arena, took a 
+563 
+picture from all cameras, detected checkerboard corners in all images using the functions in 
+564 
+OpenCV-Python calibration library, and estimated the rotation and translation vectors for each 
+565 
+camera using MATLAB’s extrinsic calibration functions. Calibrations were checked periodically 
+566 
+to ensure that the cameras had not been accidentally disturbed between recordings. In practice, we 
+567 
+found the recording apparatus to be stable enough that calibrations would remain accurate for 
+568 
+months at a time. 
+569 
+ 
+570 
+Electrophysiology: Microdrive construction and surgical procedures for tetrode implantation 
+571 
+followed previously described protocols 62, with slight modifications to accommodate 128-channel 
+572 
+ACCELERATED ARTICLE PREVIEW
+
+
+--- PAGE 15 ---
+
+ 
+recordings. Notably, an array of 32 tetrodes was manually connected to a custom-designed 
+573 
+headstage (made of 2 RHD2164 ICs from Intan Technologies), rather than the 16 tetrodes used in 
+574 
+previous designs. All implants were in the right hemisphere. Target coordinates were 0 mm AP 
+575 
++4.25 mm ML -4 mm SI for the DLS, and +1 mm AP + 1 mm ML -1 mm SI for MC relative to 
+576 
+bregma. MC targets were chosen to match the median recording location of MC recordings by 
+577 
+Mimica et al. 36. In one MC implant, the target site was moved by approximately +1 mm AP and 
+578 
++ 1 mm ML to avoid a blood vessel. We occasionally lowered the drive by approximately 80 μm, 
+579 
+0-4 times over the course of the experiments. Recordings were conducted using the Intan 
+580 
+RHX2000 acquisition software. Electrophysiological and video data were synchronized by passing 
+581 
+the video hardware trigger signal through the acquisition FPGA (Opal Kelly XEM6010, Xilinx 
+582 
+Spartan-6 FPGA) that interfaced with the headstage. One animal implanted in MC yielded no 
+583 
+neurons, and was thus excluded from electrophysiological analyses. 
+584 
+ 
+585 
+Recording protocol: Single-housed rats were manually placed in the arena at the beginning of a 
+586 
+recording session and left alone and undisturbed for two or three hours. All recordings were 
+587 
+performed in the absence of experimenters in a closed room with minimal noise and began at 
+588 
+approximately the same time every day. Animals were recorded daily for a minimum of 28 days 
+589 
+and a maximum of 63 days. The arena floor and walls were cleaned with 70% ethanol after every 
+590 
+recording session and allowed to dry for at least 30 minutes before further use. In total, the dataset 
+591 
+spans 607 hours of simultaneous electrophysiology and videography (353.5 hours DLS and 253.5 
+592 
+hours MC). 
+593 
+ 
+594 
+Histology: At the end of the experiment, we performed an electrolytic lesion of the recording site 
+595 
+by passing a 30 μA current through the electrodes. For two animals implanted in MC, we were 
+596 
+unable to perform a lesion as the headstages came off unexpectedly. The location of these implants 
+597 
+was verified based on scarring caused by the implant. After lesioning, animals were euthanized 
+598 
+(100 mg/kg ketamine; 10 mg/kg xylazine) and transcardially perfused with 4% paraformaldehyde 
+599 
+in 1x PBS. We then extracted the brains and placed them in 4% paraformaldehyde for two weeks. 
+600 
+Brains were sectioned into 80 μm slices using a vibratome (Vibration Company Vibratome 1500 
+601 
+Sectioning System), mounted the slices on microscope slides, and stained with Cresyl-Violet. We 
+602 
+imaged the slides using an Axioscan slide scanner and localized the recording site by the 
+603 
+electrolytic lesions.  
+604 
+ 
+605 
+Data processing 
+606 
+ 
+607 
+3D Pose Estimation: We used DANNCE version 1.3 to estimate the 3D pose of the animal over 
+608 
+time from multi camera images. Pose estimation with DANNCE consists of two main steps: center 
+609 
+of mass (CoM) detection and DANNCE keypoint estimation.  
+610 
+ 
+611 
+CoM network training: We used Label3D 35 to manually label the rat CoM from multi camera 
+612 
+images in 600 frames spanning 3 animals. Frames were manually selected to span the range of 
+613 
+locations and poses animals assume when in the arena. CoM networks were trained as described 
+614 
+previously 35. 
+615 
+ 
+616 
+DANNCE network training: We again used Label3D to manually label the 3D positions of 23 
+617 
+keypoints along a rat’s body. The dataset consisted of over 973 frames manually selected to sample 
+618 
+ACCELERATED ARTICLE PREVIEW
+
+
+--- PAGE 16 ---
+
+ 
+a diverse range of poses from four different animals over 8 different recordings. We finetuned a 
+619 
+model 
+previously 
+trained 
+to 
+track 
+keypoints 
+in 
+the 
+Rat7M  
+620 
+(https://doi.org/10.6084/m9.figshare.c.5295370.v3) dataset on our training set, as in earlier work 
+621 
+35. Notable modifications to this procedure included two methods for data augmentation and a 
+622 
+modified loss function. The first data augmentation method is mirror augmentation, which 
+623 
+effectively doubles the dataset size by inverting the 3D volumes generated from multi camera 
+624 
+images along the X-axis (parallel to the ground) and swapping the 3D positions of bilaterally 
+625 
+symmetric keypoints. The second is view augmentation, which randomly permutes the order that 
+626 
+images from different cameras are fed into the network. Finally, we used an L1 loss function rather 
+627 
+than the original L2 loss. We include a list of relevant DANNCE parameter specifications in 
+628 
+Supplementary Table 2. 
+629 
+ 
+630 
+Evaluation: DANNCE performance was quantified using a dataset of 50 manually labeled frames 
+631 
+randomly selected from a recording session that had not been included in the training set. To 
+632 
+estimate intra-labeler variability, the same 50 frames were re-labeled by the same person one 
+633 
+month after the initial labeling. We report the keypoint error between manual labels and DANNCE 
+634 
+predictions up to a Procrustes transformation without scaling. 
+635 
+ 
+636 
+Compute resources: CoM and DANNCE models were trained and evaluated using computational 
+637 
+resources in the Cannon High Performance Cluster operated by Harvard Research Computing. 
+638 
+These included a mixture of NVIDIA hardware including GeForce GTX 1080 Ti, GeForce RTX 
+639 
+2080 Ti, Tesla V100, A40, and A100 Tensor Core GPUs.  
+640 
+ 
+641 
+Skeletal model: We previously developed a skeletal model of a rat that matches the bone lengths 
+642 
+and mass distribution of Long Evans rats 1. The model has 74 degrees of freedom (DoF) and 
+643 
+defines parent-child relationships between body parts through an acyclic tree that starts with the 
+644 
+root (similar to the center of mass) and branches to the extremities. The pose of the model consists 
+645 
+of 3 Cartesian dimensions specifying the position of the root in space, 4 dimensions specifying the 
+646 
+quaternion that captures the orientation of the model relative to the Cartesian reference, and 67 
+647 
+dimensions that specify the orientations of child body parts relative to their parent’s reference 
+648 
+frame. The model has 38 controllable actuators that apply torques to specific joints. To help imitate 
+649 
+rearing, we increased the range of motion of the ankle and toe joints to [-.1, 2.0] and [-.7, .87] 
+650 
+radians. The model is equipped with a series of sensors, including 1) a velocimeter, 2) an 
+651 
+accelerometer, 3) a gyroscope, 4) and force, torque, and touch sensors on its end effectors. 
+652 
+ 
+653 
+Skeletal registration: We used a custom implementation of STAC 44 to register the skeletal model 
+654 
+to the DANNCE keypoints. Briefly, STAC uses an iterative optimization algorithm to learn a set 
+655 
+of 3D offsets that relate different sites along the skeletal model to DANNCE keypoints (m-phase), 
+656 
+as well as the pose of the model that best reflects the keypoints at each frame given the set of 
+657 
+offsets (q-phase). To ensure consistent relationships between keypoints and model sites across 
+658 
+different poses, the offsets corresponding to keypoints closest to a body part were expressed in the 
+659 
+reference frame of the parent body part. 
+660 
+ 
+661 
+In the m-phase, we optimize the offsets using L-BFGS-B over a dataset of 500 frames to minimize 
+662 
+the mean squared error between the true keypoints and fictive keypoints derived from applying the 
+663 
+offsets to the posed model. In the q-phase we optimize the pose of the model using least-squares 
+664 
+ACCELERATED ARTICLE PREVIEW
+
+
+--- PAGE 17 ---
+
+ 
+optimization over the same set of frames to minimize the same objective while keeping the offsets 
+665 
+fixed. At each step of the pose optimization, we reposition the model and compute new positions 
+666 
+of the fictive offsets via forward kinematics in MuJoCo.  
+667 
+ 
+668 
+As the dataset totaled 607 hours of data sampled at 50 Hz, the registration algorithm needed to be 
+669 
+efficient. To speed up the q-phase, we separately optimized the pose of different body parts rather 
+670 
+than optimizing over the full body pose. First, we initialize the model’s root position as the position 
+671 
+of the middle spine keypoint and optimize only the 7 DoF specifying the Cartesian position and 
+672 
+quaternion of its root. We next optimize the quaternions of the root, trunk, and head to match 
+673 
+keypoints along the head and trunk of the animal. Finally, we individually optimize each limb. In 
+674 
+subsequent frames, we initialize the model’s pose using its pose in the previous frame. 
+675 
+ 
+676 
+For each animal, we independently estimated the offsets using the procedure described above. We 
+677 
+accounted for differences in animal size by isometrically scaling the model by a scaling factor 
+678 
+manually determined via a visual comparison of models overlain on images of the rats. We found 
+679 
+this procedure to be more robust, faster, and produce comparable results to a direct optimization 
+680 
+of the scaling factor when learning offsets. In practice, we found that running the iterative 
+681 
+optimization three times produced reasonable offsets that could be used to estimate the skeletal 
+682 
+pose in new keypoint data.  
+683 
+ 
+684 
+To infer the skeletal pose of an entire recording session, we ran the q-phase optimization a final 
+685 
+time using the set of offsets learned during training. To improve inference speed, we divided the 
+686 
+session into contiguous 20 second chunks and ran the q-phase optimization in parallel on Harvard 
+687 
+Research Computing’s Cannon HPC. 
+688 
+ 
+689 
+Behavioral segmentation: We automatically identified stereotyped behaviors throughout our 
+690 
+recording sessions using an unsupervised feature extraction and clustering approach described 
+691 
+previously 40–43. We extracted a high-dimensional feature vector capturing the multiscale dynamics 
+692 
+of the animal’s keypoints over time. The vector was composed of three types of features. The first 
+693 
+was the height of the keypoints from the floor, smoothed using a 60-ms median filter. The second 
+694 
+was the keypoint velocities, estimated using the finite differences method on smoothed (100-ms, 
+695 
+median filter) keypoint trajectories. The third was a multiscale time-frequency decomposition of 
+696 
+the rat’s pose, obtained by computing a pairwise distance matrix between keypoints for all frames 
+697 
+in the smoothed keypoint trajectories, decomposing the matrix into its top 20 principal 
+698 
+components, and applying a continuous wavelet transform to each principal component with 
+699 
+frequencies ranging from 0.5 to 20 hz.  
+700 
+ 
+701 
+To aid in identifying diverse stereotyped behaviors, we implemented a sampling and clustering 
+702 
+procedure. For each session, we subsampled the feature vector by a factor of 20 and embedded it 
+703 
+into a 2-dimensional space using t-distributed stochastic neighbor embedding. We next clustered 
+704 
+the resulting space using hierarchical watershed clustering, and uniformly sampled 500 samples 
+705 
+across the clusters. Samples from each session were compiled into a single set and clustered to 
+706 
+automatically assign behavioral categories to individual frames using k-means clustering (K=100). 
+707 
+The resulting cluster centroids were then used to classify the remaining frames in the original 
+708 
+dataset. 
+709 
+ 
+710 
+ACCELERATED ARTICLE PREVIEW
+
+
+--- PAGE 18 ---
+
+ 
+Spike sorting: For each animal, the raw neural data from all sessions was sorted using an improved 
+711 
+implementation of Fast Automated Spike Tracker (FAST) 62. While the majority of the sorting 
+712 
+process remains unchanged between the implementations, there are three relevant modifications.  
+713 
+ 
+714 
+Feature extraction: We applied a 𝛽-distribution (𝛽=100) weighting transform to the spike 
+715 
+waveforms to more heavily weigh the values near the spike peak. We next spectrally decomposed 
+716 
+the waveforms using a discrete wavelet transform with a Symlets 2 wavelet. Finally, we applied 
+717 
+Principal Components Analysis on the wavelet coefficients, retaining only the first 10 components. 
+718 
+ 
+719 
+Clustering: We identified putative single units using ISO-split 63 rather than superparamagnetic 
+720 
+clustering.  We used an iso-cut threshold of .9, a minimum cluster size of 8, 200 initial clusters, 
+721 
+and 500 iterations per pass.   
+722 
+ 
+723 
+Linking: To sort our long-term recordings, we clustered the feature-transformed data spanning 
+724 
+chunks of approximately 1 hour using ISO-split, and linked clusters across chunks using a variation 
+725 
+of the segmentation fusion algorithm detailed in FAST. The relevant modification was using the 
+726 
+Komolgorov-Smirnov criterion from ISO-split to link similar neurons across recording sessions. 
+727 
+ 
+728 
+Criteria for unit selection: After manual curation, we used several summary statistics to further 
+729 
+assess the quality of putative single units. For encoding analyses, we excluded units with an 
+730 
+isolation index 62 less than .1, and a proportion of interspike interval violations greater than .02. 
+731 
+For single-unit analyses, we excluded units with average firing rates less than .25 Hz and a total 
+732 
+recorded duration that failed to span the entirety of the session in which they were measured. For 
+733 
+population analyses, we excluded units with average firing rates less than .05 Hz and those with 
+734 
+total recorded durations that failed to span the entirety of the session in which they were measured 
+735 
+(2092 putative single units, 1249 DLS, 843 MC). For all analyses, spike times were binned into 
+736 
+20 ms bins.  
+737 
+ 
+738 
+Model training 
+739 
+ 
+740 
+Training set: The training data for MIMIC controllers consists of contiguous trajectories of a high-
+741 
+dimensional state vector describing the real animal’s movement. Features in this vector were 
+742 
+derived from the skeletal registration and are as follows: freejoint Cartesian position, root 
+743 
+quaternion, joint quaternions, center of mass (CoM), end effector Cartesian position, freejoint 
+744 
+velocity, root quaternion velocity, joint quaternions velocity, appendage Cartesian positions, body 
+745 
+Cartesian positions, and body quaternions. Velocities were estimated with the finite differences 
+746 
+method. 
+747 
+ 
+748 
+We automatically identified a collection of 5-second clips containing a wide range of behaviors 
+749 
+spanning our behavioral embedding. We found it necessary to prioritize behaviors in which the 
+750 
+animal was moving to prevent the model from converging to local minima where it would remain 
+751 
+still. We visually verified the quality of each clip by removing clips in which the animal did not 
+752 
+move or seemingly assumed physically implausible poses from errors in tracking or registration. 
+753 
+In the end we used a dataset of 842 clips. 
+754 
+ 
+755 
+ACCELERATED ARTICLE PREVIEW
+
+
+--- PAGE 19 ---
+
+ 
+Imitation task: We used an imitation task similar to previous works on motion capture tracking 
+756 
+5,64,65, and most closely resembling CoMic 3. The task has four major considerations: initialization, 
+757 
+observations, reward function, and termination condition.  
+758 
+ 
+759 
+Initialization: Episodes were initiated by randomly selecting a starting frame from the set of all 
+760 
+frames across all clips, excluding the last ten frames from each clip. The pose of the rat model was 
+761 
+initialized to the reference pose in the selected frame.  
+762 
+ 
+763 
+Observations: The model received as input a combination of proprioceptive information, motion 
+764 
+and force sensors, and a reference trajectory. These include the actuator activation, appendage 
+765 
+positions, joint positions, joint velocities, accelerometer data, gyroscope data, touch sensors at the 
+766 
+hands and feet, torque sensors at the joints, velocimeter data, tendon position, tendon velocities, 
+767 
+and the reference trajectory. The reference trajectory is defined as the set of states visited by the 
+768 
+real animal in a short time window ranging from 20 ms to 200 ms in the future (the majority of 
+769 
+models had a time window duration of 100 ms). At each timepoint, the kinematics of the reference 
+770 
+trajectory was represented relative to the current state of the model in Cartesian and quaternion 
+771 
+representations. Given the short timescales of the reference trajectory, we believe our models are 
+772 
+most appropriate for interpreting the short-timescale dynamics involved in motor control, rather 
+773 
+than the long term organization of behavior. 
+774 
+ 
+775 
+Reward functions: As in previous work on motion capture tracking 3,5,64, we treat the imitation 
+776 
+objective as a combination of several rewards pertaining to different kinematic features. The 
+777 
+rewards consist of four terms that penalize deviations between the reference trajectory and the 
+778 
+model’s kinematics and one term that regularizes actuator forces.  
+779 
+ 
+780 
+The first term, 𝑟𝑐𝑜𝑚, penalizes deviations in the positions of the CoM between the reference and 
+781 
+model.  
+782 
+ 
+783 
+𝑟𝑐𝑜𝑚= exp (−100‖𝑝𝑐𝑜𝑚−𝑝𝑐𝑜𝑚
+𝑟𝑒𝑓‖
+2) 
+784 
+ 
+785 
+Where 𝑝𝑐𝑜𝑚 and 𝑝𝑐𝑜𝑚
+𝑟𝑒𝑓 are the CoM positions for the model and reference, respectively. Only 
+786 
+spatial dimensions parallel to the ground were included to avoid the ambiguity in CoM height 
+787 
+between isometrically scaled versions of the model used for skeletal registration and the unscaled 
+788 
+versions of the model used in training.   
+789 
+ 
+790 
+The second term, 𝑟𝑣𝑒𝑙, penalizes deviations in the joint angular velocities between the reference 
+791 
+and model. 
+792 
+ 
+793 
+𝑟𝑣𝑒𝑙= exp (−.1‖𝑞𝑣𝑒𝑙−𝑞𝑣𝑒𝑙
+𝑟𝑒𝑓‖
+2) 
+794 
+ 
+795 
+Where 𝑞𝑣𝑒𝑙 and 𝑞𝑣𝑒𝑙
+𝑟𝑒𝑓 are the joint angle velocities of the model and reference, respectively, and 
+796 
+the difference is the quaternion difference.  
+797 
+ 
+798 
+The third term, 𝑟𝑎𝑝𝑝, penalizes deviations in the end effector appendage position between the 
+799 
+reference and the model.  
+800 
+ACCELERATED ARTICLE PREVIEW
+
+
+--- PAGE 20 ---
+
+ 
+ 
+801 
+𝑟𝑎𝑝𝑝= exp (−400‖𝑝𝑎𝑝𝑝−𝑝𝑎𝑝𝑝
+𝑟𝑒𝑓‖
+2) 
+802 
+ 
+803 
+Where 𝑝𝑎𝑝𝑝 and 𝑝𝑎𝑝𝑝
+𝑟𝑒𝑓 are the end effector appendage positions of the model and reference, 
+804 
+respectively.  
+805 
+ 
+806 
+The fourth term, 𝑟𝑞𝑢𝑎𝑡, penalizes deviations in the joint angles of the model and reference. 
+807 
+ 
+808 
+𝑟𝑞𝑢𝑎𝑡= exp (−2‖𝑞𝑞𝑢𝑎𝑡−𝑞𝑞𝑢𝑎𝑡
+𝑟𝑒𝑓‖
+2) 
+809 
+ 
+810 
+Where 𝑞𝑞𝑢𝑎𝑡 and 𝑞𝑞𝑢𝑎𝑡
+𝑟𝑒𝑓 are the joint angles of the model and reference, respectively. 
+811 
+ 
+812 
+The fifth term, 𝑟𝑎𝑐𝑡, regularized the actuator forces used across the agent’s actuators.  
+813 
+ 
+814 
+𝑟𝑎𝑐𝑡= −0.015 1
+𝐷∑𝑎𝑖
+2
+𝐷
+𝑖=1
+ 
+815 
+ 
+816 
+Where  is the number of controllable actuators and 𝑎𝑖 is the actuator force of the th actuator 
+817 
+ 
+818 
+Termination condition: Episodes were automatically terminated when the model’s movements 
+819 
+substantially deviated from the reference. Specifically, episodes terminated when  
+820 
+ 
+821 
+1 −1
+𝜏(‖𝑏𝑝𝑜𝑠−𝑏𝑝𝑜𝑠
+𝑟𝑒𝑓‖1 + ‖𝑞𝑝𝑜𝑠−𝑞𝑝𝑜𝑠
+𝑟𝑒𝑓‖1) < 0 
+822 
+ 
+823 
+Where 𝜏 corresponds to the termination threshold, 𝑏𝑝𝑜𝑠 and 𝑏𝑝𝑜𝑠
+𝑟𝑒𝑓 correspond to the body positions 
+824 
+of the model and reference, and 𝑞𝑝𝑜𝑠 and 𝑞𝑝𝑜𝑠
+𝑟𝑒𝑓 correspond to the joint angles of the model and 
+825 
+reference with the difference being the quaternion difference. We used a 𝜏 value of .3 in all 
+826 
+experiments.  
+827 
+ 
+828 
+Training: Models were trained using multiple objective value maximum a posteriori policy 
+829 
+optimization (MO-VMPO) 66. In this setting, MO-VMPO trains a single policy to balance five 
+830 
+objectives corresponding to each of the five reward terms. The relative contribution of each 
+831 
+objective is specified by a vector, , with a single element per objective. We set 𝜖𝑐𝑜𝑚= 0.01 
+832 
+, 𝜖𝑎𝑝𝑝= 0.01, 𝜖𝑣𝑒𝑙= 0.01, 𝜖𝑞𝑢𝑎𝑡= 0.01, and 𝜖𝑎𝑐𝑡= 0.0001. For all models, we used a batch size 
+833 
+of 256, an unroll length of 20, and a discount factor of 0.95. In the MO-VMPO E-steps, we use the 
+834 
+top 50% of advantages 67. In the policy distillation step, we set the KL bounds for the policy mean 
+835 
+to 
+, and the KL bounds for the policy covariance to 1𝑒−5. We initialized all Lagrange multipliers 
+836 
+in MO-VMPO to 1, with minimum values of 1𝑒−8. We used Adam 68 for optimization with a 
+837 
+learning rate of 1𝑒−4. Models were trained using 4000 actors, 32 cachers, and a TPUv2 chip. A 
+838 
+typical model trained for 2-3 days.  
+839 
+ 
+840 
+Model Architectures 
+841 
+ACCELERATED ARTICLE PREVIEW
+
+
+--- PAGE 21 ---
+
+ 
+ 
+842 
+An overview of model architectures is included in Supplementary Table 3. 
+843 
+ 
+844 
+Reference encoder: All architectures featured the same reference encoder. We used the reference 
+845 
+trajectory for the following five timesteps and proprioceptive observations at the current timestep 
+846 
+as inputs to the reference encoder. The encoder consisted of a two-layer densely-connected multi-
+847 
+layer perceptron (MLP) with 1024 hidden units in each layer and hyperbolic tangent activation 
+848 
+functions, using layer norm. The final layer of the encoder produced two 60-dimensional vectors 
+849 
+that were passed through linear activation functions to respectively parametrize the mean, , and 
+850 
+log standard deviation, , of the stochastic latent representation.  
+851 
+ 
+852 
+MLP value function: For MLP networks, the critic was composed of a two-layer MLP with 1024 
+853 
+hidden units, followed by one additional one-layer MLP for each objective. It received the same 
+854 
+inputs as the reference encoder.  
+855 
+ 
+856 
+LSTM value function: For LSTM networks, the critic was composed of a single LSTM with 512 
+857 
+hidden units, followed by one additional one-layer MLP for each objective. It received the same 
+858 
+inputs as the reference encoder.  
+859 
+ 
+860 
+Latent regularization: As in CoMic 3, we append an additional Kullback-Liebler (KL) divergence 
+861 
+loss term to the MO-VMPO policy distillation objective that regularizes the latent embedding 
+862 
+using a standard Gaussian prior, 
+863 
+ 
+864 
+𝛽𝔼𝜋[𝐾𝐿(𝜋(𝑧𝑡|𝑠𝑡, 𝑠𝑡
+𝑟𝑒𝑓) ‖ 𝒩(0, 𝐼))] 
+865 
+  
+866 
+ 
+867 
+with the scalar parameter 𝛽 controlling the strength of the regularization. We additionally impose 
+868 
+a one-step autoregressive prior, AR(1), described by 
+869 
+ 
+870 
+𝑧𝑡+1 = 𝛼𝑧𝑡+ 𝜎𝜖,    𝜖 ~ 𝒩(0, 𝐼) 
+871 
+ 
+872 
+Where  is the contribution of the autoregressive term. For models with autoregressive priors we 
+873 
+use 𝛼 to .95, and for those without autoregressive priors, we set 𝛼 to zero.  
+874 
+ 
+875 
+MLP Decoder: The MLP decoder was composed of a two-layer MLP with 1024 hidden units.  
+876 
+ 
+877 
+LSTM Decoder: The LSTM decoder was composed of two stacked LSTMs with 512 and 256 
+878 
+hidden units respectively. 
+879 
+ 
+880 
+Action type: We trained models with two types of actions. The first was position-controlled action, 
+881 
+in which model outputs denoted the desired position of each controllable actuator. The forces 
+882 
+required to achieve those positions were then computed via inverse kinematics to actuate the model 
+883 
+appropriately. The second was torque-controlled action, in which the model directly produced 
+884 
+torques at each actuator. 
+885 
+ 
+886 
+ACCELERATED ARTICLE PREVIEW
+
+
+--- PAGE 22 ---
+
+ 
+Reference trajectory duration: In one experiment (Extended Data Fig. 11), we trained five inverse 
+887 
+dynamics models that varied in the duration of the reference trajectory (20, 40, 60, 100, or 200 
+888 
+ms). The models all featured torque actuation, a LSTM decoder, and a KL regularization 
+889 
+coefficient of 1e-4. 
+890 
+ 
+891 
+Body modifications: In two separate experiments (Extended Data Fig. 12, 13), we trained inverse 
+892 
+dynamics models to control modified versions of the virtual rodent body. These modifications 
+893 
+were designed to influence the dynamics of movement without requiring changes in the kinematics 
+894 
+of movement. In a ‘mass scaling’ experiment, we uniformly scaled the masses of all body parts of 
+895 
+the virtual rodent body from half to twice the standard mass. In a ‘relative head scaling’ experiment 
+896 
+we scaled the mass of the head relative to the mass of the rest of the body from half to twice the 
+897 
+standard ratio. In both experiments, we trained inverse dynamics models with torque actuation, a 
+898 
+LSTM decoder, and a KL regularization coefficient of 1e-4 to control the different modified 
+899 
+bodies, and evaluated their performance on held-out data controlling the bodies on which they 
+900 
+were trained. 
+901 
+ 
+902 
+Model inference  
+903 
+ 
+904 
+Rollout: To evaluate the models on new data, we used the postural trajectories obtained from 
+905 
+STAC as reference trajectories. At each frame, the model would accept its current state and the 
+906 
+reference trajectory for the following frames and generate an action. After applying forward 
+907 
+kinematics, this action would result in the state at the next frame, closing the sensorimotor loop. 
+908 
+In the initial frame, the model’s state was initialized to the state of the real animal. For the encoding 
+909 
+and representational similarity analyses, we disabled the noise at the action periphery and the 
+910 
+sampling noise in the stochastic latent space. For analyses of the model’s latent variability, these 
+911 
+sources of noise remained enabled.  
+912 
+ 
+ 
+913 
+At each frame, we recorded physical parameters related to the model’s state, activations of several 
+914 
+layers of the ANN controllers, and the fictive reward. The physical parameters included STAC-
+915 
+estimated keypoints, quaternion forces experienced at all joints, quaternion positions, velocities, 
+916 
+and accelerations, and the cartesian positions of all joints. The recorded ANN layers included the 
+917 
+latent mean and log standard deviation, the latent sample, all LSTM hidden and cell states, and the 
+918 
+action. 
+919 
+ 
+920 
+To aid in comparing the network’s activity to neural activity, we maintained the termination 
+921 
+condition employed during training. This decision had two effects. First, it maintained that the 
+922 
+model’s behavior was within a reasonable range of the true behavior. Second, it ensured that the 
+923 
+state inputs to the model were within the distribution observed during training, and thus prevented 
+924 
+the network activity from behaving unpredictably. For all analyses, we excluded the .2 seconds 
+925 
+preceding or following initialization or termination frames. 
+926 
+ 
+927 
+As this rollout process is serial and limited by the speed of the physical simulation, evaluating long 
+928 
+sessions is time consuming. To improve inference speed, we divided all recordings into 50 s 
+929 
+chunks and evaluated models on each chunk in parallel, using 1 CPU core per chunk.  
+930 
+ 
+931 
+Alternative control models 
+932 
+ACCELERATED ARTICLE PREVIEW
+
+
+--- PAGE 23 ---
+
+ 
+ 
+933 
+To compare the structure of neural activity across behavior to functions other than inverse models, 
+934 
+we use a dataset of state-action pairs obtained from MIMIC model rollouts when imitating natural 
+935 
+behavior to implement forward and sequential forecasting models in ANNs using supervised 
+936 
+learning (Extended Data Fig. 10 A-F). States were parametrized by the model’s quaternion pose, 
+937 
+while actions were parametrized by the model’s action. Forward models were trained to predict 
+938 
+the sensory consequences of motor actions, transforming the state and action for the current frame 
+939 
+into the state of the next frame. Sequential forecasting models were trained to predict future states 
+940 
+from past states. We varied the number of frames spanning the past-state vector from 1 to 5 to test 
+941 
+the influence of longer context while maintaining parity with the window size of the inverse 
+942 
+models.  
+943 
+ 
+944 
+The encoders and decoders for both models were composed of multi-layer perceptrons with three 
+945 
+hidden layers of 1024 units each, with leaky rectified linear unit activation functions 69. All models 
+946 
+featured β-weighted conditional latent bottlenecks of equal dimensionality to those of the inverse 
+947 
+dynamics models (60), with a β value of .01. The objective was to minimize the mean-squared 
+948 
+error of the target.  
+949 
+ 
+950 
+While we believe that comparisons to models trained via supervision is valuable, it is possible that 
+951 
+the representations of models trained via reinforcement to implement alternative control functions 
+952 
+may differ from those trained through supervision. This question could be resolved in future work 
+953 
+via the integration of multiple control functions into composite controllers trained via 
+954 
+reinforcement.  
+955 
+ 
+956 
+Encoding analyses  
+957 
+ 
+958 
+Feature set: We used Poisson generalized linear models (GLMs) with a log link function 70 to 
+959 
+predict the spiking of putative single units in DLS and MC from measurable movement features, 
+960 
+features inferred from physical simulation in MuJoCo, and the activations of ANN inverse 
+961 
+controllers. The measurable features included aligned 3D keypoint positions and velocities and 
+962 
+joint angular positions and velocities, spanning the entire body. Dynamic features inferred from 
+963 
+MuJoCo included the forces experienced at each joint, and accelerometer, velocimeter, and touch 
+964 
+sensors. Finally, the ANN activations included the activations of every layer of the inverse 
+965 
+dynamics models, considered independently.  
+966 
+ 
+967 
+To ensure that the models were trained to predict movement-related activity rather than activity 
+968 
+during sleeping or resting, we focused only on frames in which animals were moving. To estimate 
+969 
+moving frames, we smoothed the keypoint velocities estimated via finite differences with a 5 frame 
+970 
+median filter and identified frames in which the average smoothed keypoint velocity was above a 
+971 
+threshold of .07 mm/frame. We then estimated sleeping frames as the set of frames resulting from 
+972 
+the application of 20 iterations of binary closing (binary erosion followed by binary dilation) and 
+973 
+500 iterations of binary opening (binary dilation followed by binary erosion) to the vector of non-
+974 
+moving frames. 
+975 
+ 
+976 
+For all features, we used data from a temporal window containing the five surrounding samples to 
+977 
+predict the number of spikes in a given bin. In general, increasing the window size improved model 
+978 
+ACCELERATED ARTICLE PREVIEW
+
+
+--- PAGE 24 ---
+
+ 
+predictivity up until five frames. We also trained models over a range of offsets (-1000 ms to 300 
+979 
+ms in 100 ms intervals) that shifted the temporal relationship of neural activity relative to each 
+980 
+feature.  
+981 
+ 
+982 
+Regularization: As many of the features are high-dimensional, we took several steps to counter 
+983 
+overfitting. First, we used principal components analysis to decrease the effective dimensionality 
+984 
+of our feature sets, retaining only the components required to explain 90% of the variance in the 
+985 
+temporal windows for each feature. To further address overfitting, we used elastic net 
+986 
+regularization with an L1 weight of .5 and an  value of .01. Qualitatively, results were not 
+987 
+sensitive to changes in these parameter choices.  
+988 
+ 
+989 
+Cross validation: We trained GLMs using a five-fold cross validation scheme. We first divided 
+990 
+the spiking, movement, and ANN data spanning the duration of a unit’s recording into 4-second 
+991 
+chunks which were randomly distributed into ten folds. We trained GLMs using training data from 
+992 
+nine of the folds and evaluated their performance on testing data from the remaining fold, training 
+993 
+a single model for each combination of training and testing sets. We use the cross-validated log-
+994 
+likelihood ratio (CV-LLR) and deviance-ratio pseudo-𝑅2 to quantify model predictivity, the 
+995 
+performance of a model in predicting spike counts in the testing set. 
+996 
+ 
+997 
+Hypothesis testing: We defined the most predictive feature for a given unit as the feature with the 
+998 
+highest average CV-LLR. To identify units for which the features had low predictivity, we used a 
+999 
+one-sided Wilcoxon signed-rank test to assess whether the CV-LLRs for each unit and each feature 
+1000 
+sufficiently deviated from zero. Units with a confidence score greater than .05 with Bonferroni 
+1001 
+correction for multiple comparisons were labeled as unclassified.  
+1002 
+ 
+1003 
+Representational similarity analysis  
+1004 
+ 
+1005 
+We used representational similarity analysis (RSA) to compare the representational structure of 
+1006 
+neural activity in DLS and MC across behaviors to measurable features of movement, dynamic 
+1007 
+features inferred from physical simulation, and the activations of ANN inverse controllers. RSA 
+1008 
+consists of three broad steps: feature vector estimation, representational dissimilarity matrix 
+1009 
+(RDM) estimation, and RDM comparison.  
+1010 
+ 
+1011 
+Feature vector estimation: We first applied principal components analysis to each feature, 
+1012 
+retaining only the components required to explain 95% of the total variance. For each session, we 
+1013 
+used the behavioral labels from our automated behavioral segmentation, applied a 200 ms iterative 
+1014 
+mode filter to mitigate short-duration bouts, and divided samples from each feature into behavioral 
+1015 
+categories. To eventually achieve an unbiased estimate in the dissimilarity between behavioral 
+1016 
+categories for a given feature, we divided data into two partitions for each behavior, with odd 
+1017 
+instances of the behavior comprising the first partition and even instances of the behavior 
+1018 
+comprising the second partition. For each partition, we computed the average feature vector across 
+1019 
+all samples.  
+1020 
+ 
+1021 
+We excluded frames in which the animal was sleeping and frames in the 40 samples surrounding 
+1022 
+the initiation or termination of the model’s imitation episodes. We only included sessions in which 
+1023 
+a minimum of 10 simultaneously recorded neurons were present throughout the entire duration of 
+1024 
+ACCELERATED ARTICLE PREVIEW
+
+
+--- PAGE 25 ---
+
+ 
+the session, sessions in which a minimum of 70% of the total behavioral categories were expressed, 
+1025 
+and sessions in which there was a minimum of 30 minutes of movement. 
+1026 
+ 
+1027 
+RDM estimation: We used rsatoolbox 3.0 to perform RDM estimation using the cross-validated 
+1028 
+squared Mahalanobis distance (crossnobis dissimilarity) 71–73 with the feature vectors from the 
+1029 
+behavioral partitions described above. This produces a RDM for each feature and each session. 
+1030 
+While the models’ conditional latent bottlenecks naturally suggest calculation of RDMs using 
+1031 
+distance metrics for distributions, such as the symmetric KL-divergence, it was challenging to 
+1032 
+compare these metrics across features for which we do not have parameterized probability 
+1033 
+distributions. Thus, we chose to separately analyze the latent means and scales, as well as all other 
+1034 
+features, using crossnobis dissimilarity.  
+1035 
+ 
+1036 
+RDM Comparison: For each feature we computed the average RDM across sessions and compared 
+1037 
+RDMs across features and subjects using the whitened unbiased cosine similarity 71,72.  
+1038 
+ 
+1039 
+ 
+1040 
+Motor variability analyses 
+1041 
+ 
+1042 
+Estimating instantaneous motor variability: We modified the normal inference procedure to 
+1043 
+estimate the instantaneous motor variability of the model at each timestep. Rather than disabling 
+1044 
+the latent variability, we generated 50 latent samples from the latent distribution at each frame. We 
+1045 
+then evaluated the decoder for each sample to estimate the distribution of actions that emerged 
+1046 
+from a given latent distribution. We use the standard deviation across the distribution of actions 
+1047 
+for each actuator as the instantaneous estimate of actuator variability. 
+1048 
+ 
+1049 
+To assess the significance of the predictivity of action variability and latent variability on behavior, 
+1050 
+we performed a permutation test. For each of 1000 iterations, we trained a logistic regression 
+1051 
+classifier using balanced class weights to predict the behavioral category from the vector of action 
+1052 
+standard deviations or latent standard deviations at each timepoint. We also trained another logistic 
+1053 
+regression classifier using randomly permuted category labels. The performance of both classifiers 
+1054 
+were evaluated with 5-fold cross validation, using the class-balanced accuracy as a performance 
+1055 
+metric.  
+1056 
+ 
+1057 
+Variability perturbations: We further modified the inference procedure to perturb the structure of 
+1058 
+latent variability. Our perturbation involved varying the structure of the latent variability and 
+1059 
+clamping the total variability of the latent space at each timepoint. We considered three different 
+1060 
+structures for the latent variability. The first was a standard variability structure, in which no 
+1061 
+changes were made to the latent distribution. The second was a uniform variability structure in 
+1062 
+which each dimension of the latent space was set to equal variance for every frame. The third was 
+1063 
+an inverted variability structure that was constructed as follows. In each frame the latent 
+1064 
+dimensions were ranked according to their latent standard deviation. The standard deviations were 
+1065 
+then reassigned in inverse rank order such that the dimensions with the highest variability were 
+1066 
+assigned low variability and vice versa. To clamp the variability at a particular noise level, we 
+1067 
+multiplied the transformed latent variability vector by a scalar value such that the total variability 
+1068 
+across all dimensions in the latent space equaled the desired noise level for every frame of the 
+1069 
+simulation. 
+1070 
+ACCELERATED ARTICLE PREVIEW
+
+
+--- PAGE 26 ---
+
+ 
+ 
+1071 
+To evaluate the performance of models undergoing variability perturbations, we defined a fictive 
+1072 
+reward term to combine the multiple MO-VMPO objectives into a single scalar value. The fictive 
+1073 
+reward was adapted from objective functions in previous work 3 and was defined by: 
+1074 
+ 
+1075 
+. 4𝑟𝑐𝑜𝑚+ 2 𝑟𝑣𝑒𝑙+ .15𝑟𝑎𝑝𝑝+ .35𝑟𝑞𝑢𝑎𝑡 
+1076 
+ 
+1077 
+Estimating instantaneous neural variability: While the parametrizations of variability in latent 
+1078 
+variable models can be easily recorded, directly measuring instantaneous variability in neural 
+1079 
+activity is not possible. To approximate a measure of instantaneous neural variability, we 
+1080 
+computed a sliding-window variance estimate using a 1-second window on the binned spike counts 
+1081 
+of each neuron. In lieu of more sophisticated approaches that can estimate latent variability 
+1082 
+structure of neural populations across behavior and at the months-long recording scale, we believe 
+1083 
+that our approach serves as a reasonable approximation of neural variability structure.  
+1084 
+ 
+1085 
+ 
+1086 
+References: 
+1087 
+1. 
+Merel, J. et al. Deep neuroethology of a virtual rodent. in Eighth International Conference on 
+1088 
+Learning Representations (2020). 
+1089 
+2. 
+Todorov, E., Erez, T. & Tassa, Y. MuJoCo: A physics engine for model-based control. in 
+1090 
+2012 IEEE/RSJ International Conference on Intelligent Robots and Systems 5026–5033 
+1091 
+(ieeexplore.ieee.org, 2012). 
+1092 
+3. 
+Hasenclever, L., Pardo, F., Hadsell, R., Heess, N. & Merel, J. CoMic: Complementary Task 
+1093 
+Learning & Mimicry for Reusable Skills. 119, 4105–4115 (13--18 Jul 2020). 
+1094 
+4. 
+Merel, J. et al. Neural Probabilistic Motor Primitives for Humanoid Control. in 7th 
+1095 
+International Conference on Learning Representations, ICLR 2019, New Orleans, LA, USA, 
+1096 
+May 6-9, 2019 (OpenReview.net, 2019). 
+1097 
+5. 
+Peng, X. B., Abbeel, P., Levine, S. & van de Panne, M. DeepMimic: example-guided deep 
+1098 
+reinforcement learning of physics-based character skills. ACM Trans. Graph. 37, 1–14 (2018). 
+1099 
+6. 
+Jordan, M. I. Computational aspects of motor control and motor learning. in Handbook of 
+1100 
+perception and action, Vol (ed. Heuer, H.) vol. 2 71–120 (Academic Press, xx, San Diego, 
+1101 
+CA, US, 1996). 
+1102 
+ACCELERATED ARTICLE PREVIEW
+
+
+--- PAGE 27 ---
+
+ 
+7. 
+Todorov, E. & Jordan, M. I. Optimal feedback control as a theory of motor coordination. Nat. 
+1103 
+Neurosci. 5, 1226–1235 (2002). 
+1104 
+8. 
+Todorov, E. Direct cortical control of muscle activation in voluntary arm movements: a 
+1105 
+model. Nat. Neurosci. 3, 391–398 (2000). 
+1106 
+9. 
+Lillicrap, T. P. & Scott, S. H. Preference distributions of primary motor cortex neurons reflect 
+1107 
+control solutions optimized for limb biomechanics. Neuron 77, 168–179 (2013). 
+1108 
+10. Ijspeert, A. J., Crespi, A., Ryczko, D. & Cabelguen, J.-M. From swimming to walking with a 
+1109 
+salamander robot driven by a spinal cord model. Science 315, 1416–1420 (2007). 
+1110 
+11. Kalidindi, H. T. et al. Rotational dynamics in motor cortex are consistent with a feedback 
+1111 
+controller. Elife 10, (2021). 
+1112 
+12. Georgopoulos, A. P., Kalaska, J. F., Caminiti, R. & Massey, J. T. On the relations between 
+1113 
+the direction of two-dimensional arm movements and cell discharge in primate motor cortex. 
+1114 
+J. Neurosci. 2, 1527–1537 (1982). 
+1115 
+13. Evarts, E. V. Relation of pyramidal tract activity to force exerted during voluntary movement. 
+1116 
+J. Neurophysiol. 31, 14–27 (1968). 
+1117 
+14. Ashe, J. Force and the motor cortex. Behav. Brain Res. 87, 255–269 (1997). 
+1118 
+15. Kalaska, J. F. From intention to action: motor cortex and the control of reaching movements. 
+1119 
+Adv. Exp. Med. Biol. 629, 139–178 (2009). 
+1120 
+16. Churchland, M. M. & Shenoy, K. V. Temporal complexity and heterogeneity of single-neuron 
+1121 
+activity in premotor and motor cortex. J. Neurophysiol. 97, 4235–4257 (2007). 
+1122 
+17. Yamins, D. L. K. et al. Performance-optimized hierarchical models predict neural responses 
+1123 
+in higher visual cortex. Proc. Natl. Acad. Sci. U. S. A. 111, 8619–8624 (2014). 
+1124 
+18. Kar, K., Kubilius, J., Schmidt, K., Issa, E. B. & DiCarlo, J. J. Evidence that recurrent circuits 
+1125 
+ACCELERATED ARTICLE PREVIEW
+
+
+--- PAGE 28 ---
+
+ 
+are critical to the ventral stream’s execution of core object recognition behavior. Nat. 
+1126 
+Neurosci. 22, 974–983 (2019). 
+1127 
+19. Khaligh-Razavi, S.-M. & Kriegeskorte, N. Deep supervised, but not unsupervised, models 
+1128 
+may explain IT cortical representation. PLoS Comput. Biol. 10, e1003915 (2014). 
+1129 
+20. Kell, A. J. E., Yamins, D. L. K., Shook, E. N., Norman-Haignere, S. V. & McDermott, J. H. 
+1130 
+A Task-Optimized Neural Network Replicates Human Auditory Behavior, Predicts Brain 
+1131 
+Responses, and Reveals a Cortical Processing Hierarchy. Neuron 98, 630-644.e16 (2018). 
+1132 
+21. Wang, P. Y., Sun, Y., Axel, R., Abbott, L. F. & Yang, G. R. Evolving the olfactory system 
+1133 
+with machine learning. Neuron 109, 3879-3892.e5 (2021). 
+1134 
+22. Singh, S. H., van Breugel, F., Rao, R. P. N. & Brunton, B. W. Emergent behaviour and neural 
+1135 
+dynamics in artificial agents tracking odour plumes. Nature Machine Intelligence 5, 58–70 
+1136 
+(2023). 
+1137 
+23. Haesemeyer, M., Schier, A. F. & Engert, F. Convergent Temperature Representations in 
+1138 
+Artificial and Biological Neural Networks. Neuron 103, 1123-1134.e6 (2019). 
+1139 
+24. Mante, V., Sussillo, D., Shenoy, K. V. & Newsome, W. T. Context-dependent computation 
+1140 
+by recurrent dynamics in prefrontal cortex. Nature 503, 78–84 (2013). 
+1141 
+25. Higgins, I. et al. Unsupervised deep learning identifies semantic disentanglement in single 
+1142 
+inferotemporal face patch neurons. Nat. Commun. 12, 6456 (2021). 
+1143 
+26. Banino, A. et al. Vector-based navigation using grid-like representations in artificial agents. 
+1144 
+Nature 557, 429–433 (2018). 
+1145 
+27. Cueva, C. J. & Wei, X.-X. Emergence of grid-like representations by training recurrent neural 
+1146 
+networks to perform spatial localization. ICLR (2018). 
+1147 
+28. Grillner, S. et al. Modeling a vertebrate motor system: pattern generation, steering and control 
+1148 
+ACCELERATED ARTICLE PREVIEW
+
+
+--- PAGE 29 ---
+
+ 
+of body orientation. in Progress in Brain Research (eds. Cisek, P., Drew, T. & Kalaska, J. F.) 
+1149 
+vol. 165 221–234 (Elsevier, 2007). 
+1150 
+29. Knüsel, J., Crespi, A., Cabelguen, J.-M., Ijspeert, A. J. & Ryczko, D. Reproducing Five Motor 
+1151 
+Behaviors in a Salamander Robot With Virtual Muscles and a Distributed CPG Controller 
+1152 
+Regulated by Drive Signals and Proprioceptive Feedback. Front. Neurorobot. 14, 604426 
+1153 
+(2020). 
+1154 
+30. Michaels, J. A., Schaffelhofer, S., Agudelo-Toro, A. & Scherberger, H. A goal-driven 
+1155 
+modular neural network predicts parietofrontal neural dynamics during grasping. Proc. Natl. 
+1156 
+Acad. Sci. U. S. A. 117, 32124–32135 (2020). 
+1157 
+31. Sussillo, D., Churchland, M. M., Kaufman, M. T. & Shenoy, K. V. A neural network that 
+1158 
+finds a naturalistic solution for the production of muscle activity. Nat. Neurosci. 18, 1025–
+1159 
+1033 (2015). 
+1160 
+32. Chiel, H. J. & Beer, R. D. The brain has a body: adaptive behavior emerges from interactions 
+1161 
+of nervous system, body and environment. Trends Neurosci. 20, 553–557 (1997). 
+1162 
+33. Scott, S. H. & Loeb, G. E. The computation of position sense from spindles in mono- and 
+1163 
+multiarticular muscles. J. Neurosci. 14, 7529–7540 (1994). 
+1164 
+34. Latash, M. L., Scholz, J. P. & Schöner, G. Motor control strategies revealed in the structure 
+1165 
+of motor variability. Exerc. Sport Sci. Rev. 30, 26–31 (2002). 
+1166 
+35. Dunn, T. W. et al. Geometric deep learning enables 3D kinematic profiling across species and 
+1167 
+environments. Nat. Methods 18, 564–573 (2021). 
+1168 
+36. Mimica, B., Dunn, B. A., Tombaz, T., Bojja, V. P. T. N. C. S. & Whitlock, J. R. Efficient 
+1169 
+cortical coding of 3D posture in freely behaving rats. Science 362, 584–589 (2018). 
+1170 
+37. Markowitz, J. E. et al. The Striatum Organizes 3D Behavior via Moment-to-Moment Action 
+1171 
+ACCELERATED ARTICLE PREVIEW
+
+
+--- PAGE 30 ---
+
+ 
+Selection. Cell 174, 44-58.e17 (2018). 
+1172 
+38. Klaus, A. et al. The Spatiotemporal Organization of the Striatum Encodes Action Space. 
+1173 
+Neuron 95, 1171-1180.e7 (2017). 
+1174 
+39. Mimica, B. et al. Behavioral decomposition reveals rich encoding structure employed across 
+1175 
+neocortex in rats. Nat. Commun. 14, 1–20 (2023). 
+1176 
+40. Marshall, J. D. et al. Continuous Whole-Body 3D Kinematic Recordings across the Rodent 
+1177 
+Behavioral Repertoire. Neuron 109, 420-437.e8 (2021). 
+1178 
+41. Berman, G. J., Choi, D. M., Bialek, W. & Shaevitz, J. W. Mapping the stereotyped behaviour 
+1179 
+of freely moving fruit flies. J. R. Soc. Interface 11, (2014). 
+1180 
+42. Klibaite, U. et al. Deep phenotyping reveals movement phenotypes in mouse 
+1181 
+neurodevelopmental models. Mol. Autism 13, 12 (2022). 
+1182 
+43. Pereira, T. D. et al. Fast animal pose estimation using deep neural networks. Nat. Methods 16, 
+1183 
+117–125 (2018). 
+1184 
+44. Wu, T., Tassa, Y., Kumar, V., Movellan, J. & Todorov, E. STAC: Simultaneous tracking and 
+1185 
+calibration. 2013 13th IEEE-RAS International Conference on Humanoid Robots 
+1186 
+(Humanoids) Preprint at https://doi.org/10.1109/humanoids.2013.7030016 (2013). 
+1187 
+45. Peng, X. B., Ma, Z., Abbeel, P., Levine, S. & Kanazawa, A. AMP: adversarial motion priors 
+1188 
+for stylized physics-based character control. ACM Trans. Graph. 40, 144:1-144:20 (2021). 
+1189 
+46. Fussell, L., Bergamin, K. & Holden, D. SuperTrack: motion tracking for physically simulated 
+1190 
+characters using supervised learning. ACM Trans. Graph. 40, 1–13 (2021). 
+1191 
+47. Dhawale, A. K., Wolff, S. B. E., Ko, R. & Ölveczky, B. P. The basal ganglia control the 
+1192 
+detailed kinematics of learned motor skills. Nat. Neurosci. 24, 1256–1269 (2021). 
+1193 
+48. Kriegeskorte, N., Mur, M. & Bandettini, P. Representational similarity analysis - connecting 
+1194 
+ACCELERATED ARTICLE PREVIEW
+
+
+--- PAGE 31 ---
+
+ 
+the branches of systems neuroscience. Front. Syst. Neurosci. 2, 4 (2008). 
+1195 
+49. Jordan, M. I. & Rumelhart, D. E. Internal world models and supervised learning. in Machine 
+1196 
+Learning Proceedings 1991 (eds. Birnbaum, L. A. & Collins, G. C.) 70–74 (Morgan 
+1197 
+Kaufmann, San Francisco (CA), 1991). 
+1198 
+50. Nagabandi, A., Kahn, G., Fearing, R. S. & Levine, S. Neural Network Dynamics for Model-
+1199 
+Based Deep Reinforcement Learning with Model-Free Fine-Tuning. arXiv [cs.LG] (2017). 
+1200 
+51. Valero-Cuevas, F. J., Venkadesan, M. & Todorov, E. Structured variability of muscle 
+1201 
+activations supports the minimal intervention principle of motor control. J. Neurophysiol. 102, 
+1202 
+59–68 (2009). 
+1203 
+52. Diedrichsen, J., Shadmehr, R. & Ivry, R. B. The coordination of movement: optimal feedback 
+1204 
+control and beyond. Trends Cogn. Sci. 14, 31–39 (2010). 
+1205 
+53. Flash, T. & Hogan, N. The coordination of arm movements: an experimentally confirmed 
+1206 
+mathematical model. J. Neurosci. 5, 1688–1703 (1985). 
+1207 
+54. Harris, C. M. & Wolpert, D. M. Signal-dependent noise determines motor planning. Nature 
+1208 
+394, 780–784 (1998). 
+1209 
+55. Wolpert, D. M. Probabilistic models in human sensorimotor control. Hum. Mov. Sci. 26, 511–
+1210 
+524 (2007). 
+1211 
+56. Lai, L. & Gershman, S. J. Chapter Five - Policy compression: An information bottleneck in 
+1212 
+action selection. in Psychology of Learning and Motivation (ed. Federmeier, K. D.) vol. 74 
+1213 
+195–232 (Academic Press, 2021). 
+1214 
+57. Golub, M., Chase, S. & Yu, B. Learning an Internal Dynamics Model from Control 
+1215 
+Demonstration. in Proceedings of the 30th International Conference on Machine Learning 
+1216 
+(eds. Dasgupta, S. & McAllester, D.) vol. 28 606–614 (PMLR, Atlanta, Georgia, USA, 17--
+1217 
+ACCELERATED ARTICLE PREVIEW
+
+
+--- PAGE 32 ---
+
+ 
+19 Jun 2013). 
+1218 
+58. Shidara, M., Kawano, K., Gomi, H. & Kawato, M. Inverse-dynamics model eye movement 
+1219 
+control by Purkinje cells in the cerebellum. Nature 365, 50–52 (1993). 
+1220 
+59. Kawai, R. et al. Motor cortex is required for learning but not for executing a motor skill. 
+1221 
+Neuron 86, 800–812 (2015). 
+1222 
+60. Jordan, M. I. Chapter 2 Computational aspects of motor control and motor learning. in 
+1223 
+Handbook of Perception and Action (eds. Heuer, H. & Keele, S. W.) vol. 2 71–120 (Academic 
+1224 
+Press, 1996). 
+1225 
+61. Faisal, A. A., Selen, L. P. J. & Wolpert, D. M. Noise in the nervous system. Nat. Rev. 
+1226 
+Neurosci. 9, 292–303 (2008). 
+1227 
+References (Methods) 
+1228 
+62. Dhawale, A. K. et al. Automated long-term recording and analysis of neural activity in 
+1229 
+behaving animals. Elife 6, (2017). 
+1230 
+63. Chung, J. E. et al. A Fully Automated Approach to Spike Sorting. Neuron 95, 1381-1394.e6 
+1231 
+(2017). 
+1232 
+64. Merel, J. et al. Hierarchical Visuomotor Control of Humanoids. in 7th International 
+1233 
+Conference on Learning Representations, ICLR 2019, New Orleans, LA, USA, May 6-9, 2019 
+1234 
+(OpenReview.net, 2019). 
+1235 
+65. Chentanez, N., Müller, M., Macklin, M., Makoviychuk, V. & Jeschke, S. Physics-based 
+1236 
+motion capture imitation with deep reinforcement learning. in Proceedings of the 11th Annual 
+1237 
+International Conference on Motion, Interaction, and Games 1–10 (Association for 
+1238 
+Computing Machinery, New York, NY, USA, 2018). 
+1239 
+66. Abdolmaleki, A. et al. A distributional view on multi-objective policy optimization. in 
+1240 
+ACCELERATED ARTICLE PREVIEW
+
+
+--- PAGE 33 ---
+
+ 
+Proceedings of the 37th International Conference on Machine Learning 11–22 (JMLR.org, 
+1241 
+2020). 
+1242 
+67. Francis Song, H. et al. V-MPO: On-Policy Maximum a Posteriori Policy Optimization for 
+1243 
+Discrete and Continuous Control. in Eighth International Conference on Learning 
+1244 
+Representations (2020). 
+1245 
+68. Kingma, D. P. & Ba, J. Adam: A Method for Stochastic Optimization. in 3rd International 
+1246 
+Conference on Learning Representations, ICLR 2015, San Diego, CA, USA, May 7-9, 2015, 
+1247 
+Conference Track Proceedings (eds. Bengio, Y. & LeCun, Y.) (2015). 
+1248 
+69. Maas, A. L. Rectifier Nonlinearities Improve Neural Network Acoustic Models. 
+1249 
+https://www.semanticscholar.org › paper › Rectifier-Nonli...https://www.semanticscholar.org 
+1250 
+› paper › Rectifier-Nonli... (2013). 
+1251 
+70. Seabold, S. & Perktold, J. Statsmodels: Econometric and statistical modeling with python. in 
+1252 
+Proceedings of the 9th Python in Science Conference (SciPy, 2010). doi:10.25080/majora-
+1253 
+92bf1922-011. 
+1254 
+71. Diedrichsen, J. et al. Comparing representational geometries using whitened unbiased-
+1255 
+distance-matrix similarity. arXiv [stat.AP] (2020). 
+1256 
+72. Schütt, H. H., Kipnis, A. D., Diedrichsen, J. & Kriegeskorte, N. Statistical inference on 
+1257 
+representational geometries. arXiv [q-bio.QM] (2021). 
+1258 
+73. Nili, H. et al. A toolbox for representational similarity analysis. PLoS Comput. Biol. 10, 
+1259 
+e1003553 (2014). 
+1260 
+ 
+1261 
+ 
+1262 
+ 
+1263 
+ACCELERATED ARTICLE PREVIEW
+
+
+--- PAGE 34 ---
+
+Body
+Brain
+Behavior
+Compare
+Match
+Match
+MC
+DLS
+Representational
+Computational
+Skeletal registration
+3D pose estimation
+Data acquisition
+Candidate models
+Imitation
+A
+B
+C
+D
+E
+F
+Feedback controller
+Action
+State
+Forces
+Kinematics
+Action
+State
+Forward 
+model
+Inverse
+model
+Predicted state
+Action
+State
+Desired state
+Desired 
+  state
+ACCELERATED ARTICLE PREVIEW
+
+
+--- PAGE 35 ---
+
+Rear
+Walk
+0
+10
+20
+Time (s)
+0
+5
+10
+Keypoint error (mm)
+Rear
+Groom
+Scratch
+Walk
+Still
+Adjust
+Keypoint error (mm)
+Forelimb
+Hindlimb
+Head
+Back
+Total
+0
+20
+40
+Total error
+Pose error
+͐t͗t
+zt
+Encoder
+Sampling
+Decoder
+at
+reft+1: t+5
+st
+Noise
+Feedback
+a’t
+Physics
+Reference trajectory
+st+1
+A
+C
+B
+D
+E
+F
+G
+0
+100
+0
+200
+AP position
+Height
+Keypoints (mm)
+0
+10
+20
+30
+40
+0
+10
+20
+30
+40
+Time (s)
+Real
+Virtual
+0
+20
+40
+Episode duration (s)
+0.6
+0.8
+1.0
+Proportion of episodes
+ref: Reference trajectory
+͐/DWHQWPHDQ
+͗/DWHQWYDULDELOLW\
+]/DWHQWVDPSOH
+s: State
+a: Action
+ACCELERATED ARTICLE PREVIEW
+
+
+--- PAGE 36 ---
+
+Feature
+0
+100
+200
+300
+Cross-validated log-likelihood ratio
+0
+50
+100
+150
+200
+DLS
+MC
+Joint angle
+Joint angle velocity
+Aligned keypoints
+Aligned keypoint velocity
+Forces
+Input features
+Encoder 0
+Encoder 1
+Latent mean
+LSTM cell 1
+LSTM hidden 1
+LSTM cell 2
+LSTM hidden 2
+Action
+Unclassified
+Representational
+Encoder
+Decoder
+500
+0
+250
+500
+750
+1000
+2000
+Best representational 
+feature CVLLR
+0
+1000
+2000
+Best computational feature CVLLR
+A
+B
+C
+D
+Real
+Virtual
+0
+100
+200
+38
+Action
+60
+Latent
+mean
+512
+Decoder
+0
+10
+20
+30
+40
+Time (s)
+DLS
+Units
+0
+51
+A-P
+Height
+Keypoints (mm)
+z-scored activity
+-3
+3
+ACCELERATED ARTICLE PREVIEW
+
+
+--- PAGE 37 ---
+
+B
+A
+C
+F
+G
+H
+I
+D
+E
+Normalized 
+Crossnobis distance
+Max
+0
+843
+1249
+Neurons
+Behavior
+z-scored activity
+3
+-3
+DLS
+MC
+Prone
+Slow
+Groom
+Amble
+Walk
+Sniff
+Rear
+Prone
+Slow
+Groom
+Amble
+Walk
+Sniff
+Rear
+MC
+DLS
+MC
+Encoder
+Decoder
+Feature
+Feature
+Feature
+0.0
+0.2
+0.4
+0.6
+0.8
+WUC Similarity
+DLS
+0.0
+0.2
+0.4
+0.6
+0.8
+0.0
+0.2
+0.4
+0.6
+0.8
+Total
+Joint angle
+Joint angle velocity
+Aligned keypoints
+Aligned keypoint velocity
+Forces
+Input features
+Encoder 0
+Encoder 1
+Latent mean
+LSTM cell 1
+LSTM hidden 1
+LSTM cell 2
+LSTM hidden 2
+Action
+1
+2
+Mean reward
+0.5
+0.6
+0.7
+0.8
+Mean WUC Similarity
+r2 = 0.51
+r2 = 0.44
+1
+2
+Mean reward
+r2 = 0.34
+r2 = 0.18
+DLS
+MC
+20
+40
+Mean episode 
+length (s)
+r2 = 0.50
+r2 = 0.63
+20
+40
+Mean episode
+ length (s)
+r2 = 0.39
+r2 = 0.22
+Similarity across animals
+Similarity per animal
+Behavior
+Behavior
+ACCELERATED ARTICLE PREVIEW
+
+
+--- PAGE 38 ---
+
+Action variability
+Latent variability
+Critical
+Non-critical
+Latent 1
+Latent 2
+Action 1
+Action 2 
+Behavior 1
+Behavior 2
+Critical
+Non-critical
+zt
+st
+Decoder
+Behavior
+Behavior
+0
+1
+2
+Noise level
+0.6
+0.7
+0.8
+Reward
+Terminations / h
+Noise level
+0
+1
+2
+0
+2
+x 1e3
+Latent 2
+Latent 1
+Standard
+Uniform
+Inverted
+A
+B
+F
+H
+G
+I
+C
+-2.5
+0
+2.5
+Z-scored 
+latent variance
+Rear
+Time (s)
+Groom
+Prone
+5 s
+Latent variability
+LD2
+LD1 (a.u.)
+Prone
+Rear
+Walk
+D
+E
+Latent
+variability
+distribution
+0
+2
+Correlation distance
+High rear
+Low rear
+Walk
+***
+***
+Rear
+Sniff
+Prone
+Amble
+Groom
+Slow
+Walk
+Rear
+Sniff
+Prone
+Amble
+Groom
+Slow
+Walk
+Prone 
+Sniff
+Groom
+Action variability
+Modeling
+instantaneous 
+action variability
+͐t͗t
+zt
+Decoder
+at
+st
+Repeated
+sampling
+Actions
+Latents
+ACCELERATED ARTICLE PREVIEW
+
+
+--- PAGE 39 ---
+
+Extended Data Fig. 1
+ACCELERATED ARTICLE PREVIEW
+
+
+--- PAGE 40 ---
+
+Extended Data Fig. 2
+ACCELERATED ARTICLE PREVIEW
+
+
+--- PAGE 41 ---
+
+Extended Data Fig. 3
+ACCELERATED ARTICLE PREVIEW
+
+
+--- PAGE 42 ---
+
+Extended Data Fig. 4
+ACCELERATED ARTICLE PREVIEW
+
+
+--- PAGE 43 ---
+
+Extended Data Fig. 5
+ACCELERATED ARTICLE PREVIEW
+
+
+--- PAGE 44 ---
+
+Extended Data Fig. 6
+ACCELERATED ARTICLE PREVIEW
+
+
+--- PAGE 45 ---
+
+Extended Data Fig. 7
+ACCELERATED ARTICLE PREVIEW
+
+
+--- PAGE 46 ---
+
+Extended Data Fig. 8
+ACCELERATED ARTICLE PREVIEW
+
+
+--- PAGE 47 ---
+
+Extended Data Fig. 9
+ACCELERATED ARTICLE PREVIEW
+
+
+--- PAGE 48 ---
+
+Extended Data Fig. 10
+ACCELERATED ARTICLE PREVIEW
+
+
+--- PAGE 49 ---
+
+1
+nature portfolio  |  reporting summary
+March 2021
+Corresponding author(s):
+Diego Aldarondo, Bence Olveczky
+Last updated by author(s): 4/07/2024
+Reporting Summary
+Nature Portfolio wishes to improve the reproducibility of the work that we publish. This form provides structure for consistency and transparency 
+in reporting. For further information on Nature Portfolio policies, see our Editorial Policies and the Editorial Policy Checklist.
+Statistics
+For all statistical analyses, confirm that the following items are present in the figure legend, table legend, main text, or Methods section.
+n/a Confirmed
+The exact sample size (n) for each experimental group/condition, given as a discrete number and unit of measurement
+A statement on whether measurements were taken from distinct samples or whether the same sample was measured repeatedly
+The statistical test(s) used AND whether they are one- or two-sided 
+Only common tests should be described solely by name; describe more complex techniques in the Methods section.
+A description of all covariates tested
+A description of any assumptions or corrections, such as tests of normality and adjustment for multiple comparisons
+A full description of the statistical parameters including central tendency (e.g. means) or other basic estimates (e.g. regression coefficient) 
+AND variation (e.g. standard deviation) or associated estimates of uncertainty (e.g. confidence intervals)
+For null hypothesis testing, the test statistic (e.g. F, t, r) with confidence intervals, effect sizes, degrees of freedom and P value noted 
+Give P values as exact values whenever suitable.
+For Bayesian analysis, information on the choice of priors and Markov chain Monte Carlo settings
+For hierarchical and complex designs, identification of the appropriate level for tests and full reporting of outcomes
+Estimates of effect sizes (e.g. Cohen's d, Pearson's r), indicating how they were calculated
+Our web collection on statistics for biologists contains articles on many of the points above.
+Software and code
+Policy information about availability of computer code
+Data collection
+Multi-camera video was acquired using Campy (https://github.com/ksseverson57/campy). Camera calibration was performed using the 
+MATLAB Camera Calibration App (Mathworks) and opencv-python. Electrophysiological data was acquired using RHD2000 interface (Intan).
+Data analysis
+We estimated the 3D pose from multi-camera videos using DANNCE (version 1.3) (Dunn et al. 2021).  
+ 
+Skeletal registration was performed using a custom implementation of simultaneous tracking and calibration (STAC) (Wu et al. 2013).  
+ 
+Inverse dynamics model training was performed using CoMic (Hasenclever et al. 2020).  
+ 
+Inverse dynamic model inference was performed using a custom python package, npmp_embedding, which depends on dm_control, 
+tensorflow (version 2.3), and MuJoCo (version 2.10).  
+ 
+Behavioral classification was performed using a custom MATLAB implementation of motion-mapper (Berman et al. 2014).  
+ 
+Spike sorting was performed using Ephys2, a modification of FAST (Dhawale et al. 2017).  
+ 
+All data analyses were performed with custom code written in Python using packages from the PyData stack (NumPy, SciPy, StatsModels, Sci-
+kit learn, matplotlib), as well as rsatoolbox 3.0 for representational similarity analyses. Alternative control models were trained using custom 
+python code dependent on Tensorflow 2.8.
+For manuscripts utilizing custom algorithms or software that are central to the research but not yet described in published literature, software must be made available to editors and 
+reviewers. We strongly encourage code deposition in a community repository (e.g. GitHub). See the Nature Portfolio guidelines for submitting code & software for further information.
+
+
+--- PAGE 50 ---
+
+2
+nature portfolio  |  reporting summary
+March 2021
+Data
+Policy information about availability of data
+All manuscripts must include a data availability statement. This statement should provide the following information, where applicable: 
+- Accession codes, unique identifiers, or web links for publicly available datasets 
+- A description of any restrictions on data availability 
+- For clinical datasets or third party data, please ensure that the statement adheres to our policy 
+ 
+The generated datasets are available from the corresponding author upon reasonable request.
+Human research participants
+Policy information about studies involving human research participants and Sex and Gender in Research. 
+Reporting on sex and gender
+N/A
+Population characteristics
+N/A
+Recruitment
+N/A
+Ethics oversight
+N/A
+Note that full information on the approval of the study protocol must also be provided in the manuscript.
+Field-specific reporting
+Please select the one below that is the best fit for your research. If you are not sure, read the appropriate sections before making your selection.
+Life sciences
+Behavioural & social sciences
+ Ecological, evolutionary & environmental sciences
+For a reference copy of the document with all sections, see nature.com/documents/nr-reporting-summary-flat.pdf
+Life sciences study design
+All studies must disclose on these points even when the disclosure is negative.
+Sample size
+No statistical methods were used to pre-determine the number of subjects in our study but our sample sizes for electrophysiological data are 
+similar to those reported in previous publications (Jin et al., 2014; Panigrahi et al., 2015; Rueda-Orozco and Robbe, 2015; Dhawale & Wolff 
+2021). These include N=3 animals with implants in the sensorimotor striatum, and N=4 animals with implants in the motor cortex.
+Data exclusions
+No animals were excluded from behavioral analyses. One of the implanted animals (motor cortex) yielded a recording in which no neurons 
+could be detected, and thus this animal was excluded from electrophysiological analyses.
+Replication
+All recordings were performed with multiple animals per group (n=3) and yielded consistent, reproducible findings.
+Randomization
+Animals were assigned to groups for implantation in the striatum or motor cortex using a computer-generated random number list. This 
+ensured an unbiased distribution and balanced potential covariates like litter order, without directly controlling for each covariate. 
+Blinding
+Blinding was not feasible in our study because individual rats could be easily identified by distinctive features such as fur pattern, size, and 
+behavior. Given personnel constraints, the same experimenter conducted most of the surgical implantations and behavioral experiments, 
+making it impossible to blind them to the implantation sites. To minimize bias, we employed standardized and automated procedures for data 
+collection and analysis where applicable.
+Behavioural & social sciences study design
+All studies must disclose on these points even when the disclosure is negative.
+Study description
+Briefly describe the study type including whether data are quantitative, qualitative, or mixed-methods (e.g. qualitative cross-sectional, 
+quantitative experimental, mixed-methods case study). 
+Research sample
+State the research sample (e.g. Harvard university undergraduates, villagers in rural India) and provide relevant demographic 
+
+
+--- PAGE 51 ---
+
+3
+nature portfolio  |  reporting summary
+March 2021
+Research sample
+information (e.g. age, sex) and indicate whether the sample is representative. Provide a rationale for the study sample chosen. For 
+studies involving existing datasets, please describe the dataset and source.
+Sampling strategy
+Describe the sampling procedure (e.g. random, snowball, stratified, convenience). Describe the statistical methods that were used to 
+predetermine sample size OR if no sample-size calculation was performed, describe how sample sizes were chosen and provide a 
+rationale for why these sample sizes are sufficient. For qualitative data, please indicate whether data saturation was considered, and 
+what criteria were used to decide that no further sampling was needed.
+Data collection
+Provide details about the data collection procedure, including the instruments or devices used to record the data (e.g. pen and paper, 
+computer, eye tracker, video or audio equipment) whether anyone was present besides the participant(s) and the researcher, and 
+whether the researcher was blind to experimental condition and/or the study hypothesis during data collection.
+Timing
+Indicate the start and stop dates of data collection. If there is a gap between collection periods, state the dates for each sample 
+cohort.
+Data exclusions
+If no data were excluded from the analyses, state so OR if data were excluded, provide the exact number of exclusions and the 
+rationale behind them, indicating whether exclusion criteria were pre-established.
+Non-participation
+State how many participants dropped out/declined participation and the reason(s) given OR provide response rate OR state that no 
+participants dropped out/declined participation.
+Randomization
+If participants were not allocated into experimental groups, state so OR describe how participants were allocated to groups, and if 
+allocation was not random, describe how covariates were controlled.
+Ecological, evolutionary & environmental sciences study design
+All studies must disclose on these points even when the disclosure is negative.
+Study description
+Briefly describe the study. For quantitative data include treatment factors and interactions, design structure (e.g. factorial, nested, 
+hierarchical), nature and number of experimental units and replicates.
+Research sample
+Describe the research sample (e.g. a group of tagged Passer domesticus, all Stenocereus thurberi within Organ Pipe Cactus National 
+Monument), and provide a rationale for the sample choice. When relevant, describe the organism taxa, source, sex, age range and 
+any manipulations. State what population the sample is meant to represent when applicable. For studies involving existing datasets, 
+describe the data and its source.
+Sampling strategy
+Note the sampling procedure. Describe the statistical methods that were used to predetermine sample size OR if no sample-size 
+calculation was performed, describe how sample sizes were chosen and provide a rationale for why these sample sizes are sufficient.
+Data collection
+Describe the data collection procedure, including who recorded the data and how.
+Timing and spatial scale
+Indicate the start and stop dates of data collection, noting the frequency and periodicity of sampling and providing a rationale for 
+these choices. If there is a gap between collection periods, state the dates for each sample cohort. Specify the spatial scale from which 
+the data are taken
+Data exclusions
+If no data were excluded from the analyses, state so OR if data were excluded, describe the exclusions and the rationale behind them, 
+indicating whether exclusion criteria were pre-established.
+Reproducibility
+Describe the measures taken to verify the reproducibility of experimental findings. For each experiment, note whether any attempts to 
+repeat the experiment failed OR state that all attempts to repeat the experiment were successful.
+Randomization
+Describe how samples/organisms/participants were allocated into groups. If allocation was not random, describe how covariates were 
+controlled. If this is not relevant to your study, explain why.
+Blinding
+Describe the extent of blinding used during data acquisition and analysis. If blinding was not possible, describe why OR explain why 
+blinding was not relevant to your study.
+Did the study involve field work?
+Yes
+No
+Field work, collection and transport
+Field conditions
+Describe the study conditions for field work, providing relevant parameters (e.g. temperature, rainfall).
+Location
+State the location of the sampling or experiment, providing relevant parameters (e.g. latitude and longitude, elevation, water depth).
+Access & import/export
+Describe the efforts you have made to access habitats and to collect and import/export your samples in a responsible manner and in 
+
+
+--- PAGE 52 ---
+
+4
+nature portfolio  |  reporting summary
+March 2021
+Access & import/export
+compliance with local, national and international laws, noting any permits that were obtained (give the name of the issuing authority, 
+the date of issue, and any identifying information).
+Disturbance
+Describe any disturbance caused by the study and how it was minimized.
+Reporting for specific materials, systems and methods
+We require information from authors about some types of materials, experimental systems and methods used in many studies. Here, indicate whether each material, 
+system or method listed is relevant to your study. If you are not sure if a list item applies to your research, read the appropriate section before selecting a response. 
+Materials & experimental systems
+n/a Involved in the study
+Antibodies
+Eukaryotic cell lines
+Palaeontology and archaeology
+Animals and other organisms
+Clinical data
+Dual use research of concern
+Methods
+n/a Involved in the study
+ChIP-seq
+Flow cytometry
+MRI-based neuroimaging
+Antibodies
+Antibodies used
+Describe all antibodies used in the study; as applicable, provide supplier name, catalog number, clone name, and lot number.
+Validation
+Describe the validation of each primary antibody for the species and application, noting any validation statements on the 
+manufacturer’s website, relevant citations, antibody profiles in online databases, or data provided in the manuscript.
+Eukaryotic cell lines
+Policy information about cell lines and Sex and Gender in Research
+Cell line source(s)
+State the source of each cell line used and the sex of all primary cell lines and cells derived from human participants or 
+vertebrate models.
+Authentication
+Describe the authentication procedures for each cell line used OR declare that none of the cell lines used were authenticated.
+Mycoplasma contamination
+Confirm that all cell lines tested negative for mycoplasma contamination OR describe the results of the testing for 
+mycoplasma contamination OR declare that the cell lines were not tested for mycoplasma contamination.
+Commonly misidentified lines
+(See ICLAC register)
+Name any commonly misidentified cell lines used in the study and provide a rationale for their use.
+Palaeontology and Archaeology
+Specimen provenance
+Provide provenance information for specimens and describe permits that were obtained for the work (including the name of the 
+issuing authority, the date of issue, and any identifying information). Permits should encompass collection and, where applicable, 
+export.
+Specimen deposition
+Indicate where the specimens have been deposited to permit free access by other researchers.
+Dating methods
+If new dates are provided, describe how they were obtained (e.g. collection, storage, sample pretreatment and measurement), where 
+they were obtained (i.e. lab name), the calibration program and the protocol for quality assurance OR state that no new dates are 
+provided.
+Tick this box to confirm that the raw and calibrated dates are available in the paper or in Supplementary Information.
+Ethics oversight
+Identify the organization(s) that approved or provided guidance on the study protocol, OR state that no ethical approval or guidance 
+was required and explain why not.
+Note that full information on the approval of the study protocol must also be provided in the manuscript.
+
+
+--- PAGE 53 ---
+
+5
+nature portfolio  |  reporting summary
+March 2021
+Animals and other research organisms
+Policy information about studies involving animals; ARRIVE guidelines recommended for reporting animal research, and Sex and Gender in 
+Research
+Laboratory animals
+Experimental subjects were female Long Evans rats (RRID: RGD_2308852) 3-12 months old at the start of recording.
+Wild animals
+The study did not involve wild animals.
+Reporting on sex
+The study only used female rats
+Field-collected samples
+The study did not contain samples collected from the field.
+Ethics oversight
+The care and experimental manipulation of all animals were reviewed and approved by the Harvard Institutional Animal Care and 
+Use Committee.
+Note that full information on the approval of the study protocol must also be provided in the manuscript.
+Clinical data
+Policy information about clinical studies
+All manuscripts should comply with the ICMJE guidelines for publication of clinical research and a completed CONSORT checklist must be included with all submissions.
+Clinical trial registration
+Provide the trial registration number from ClinicalTrials.gov or an equivalent agency.
+Study protocol
+Note where the full trial protocol can be accessed OR if not available, explain why.
+Data collection
+Describe the settings and locales of data collection, noting the time periods of recruitment and data collection.
+Outcomes
+Describe how you pre-defined primary and secondary outcome measures and how you assessed these measures.
+Dual use research of concern
+Policy information about dual use research of concern
+Hazards
+Could the accidental, deliberate or reckless misuse of agents or technologies generated in the work, or the application of information presented 
+in the manuscript, pose a threat to:
+No
+Yes
+Public health
+National security
+Crops and/or livestock
+Ecosystems
+Any other significant area
+Experiments of concern
+Does the work involve any of these experiments of concern:
+No
+Yes
+Demonstrate how to render a vaccine ineffective
+Confer resistance to therapeutically useful antibiotics or antiviral agents
+Enhance the virulence of a pathogen or render a nonpathogen virulent
+Increase transmissibility of a pathogen
+Alter the host range of a pathogen
+Enable evasion of diagnostic/detection modalities
+Enable the weaponization of a biological agent or toxin
+Any other potentially harmful combination of experiments and agents
+
+
+--- PAGE 54 ---
+
+6
+nature portfolio  |  reporting summary
+March 2021
+ChIP-seq
+Data deposition
+Confirm that both raw and final processed data have been deposited in a public database such as GEO.
+Confirm that you have deposited or provided access to graph files (e.g. BED files) for the called peaks.
+Data access links 
+May remain private before publication.
+For "Initial submission" or "Revised version" documents, provide reviewer access links.  For your "Final submission" document, 
+provide a link to the deposited data.
+Files in database submission
+Provide a list of all files available in the database submission.
+Genome browser session 
+(e.g. UCSC)
+Provide a link to an anonymized genome browser session for "Initial submission" and "Revised version" documents only, to 
+enable peer review.  Write "no longer applicable" for "Final submission" documents.
+Methodology
+Replicates
+Describe the experimental replicates, specifying number, type and replicate agreement.
+Sequencing depth
+Describe the sequencing depth for each experiment, providing the total number of reads, uniquely mapped reads, length of reads and 
+whether they were paired- or single-end.
+Antibodies
+Describe the antibodies used for the ChIP-seq experiments; as applicable, provide supplier name, catalog number, clone name, and lot 
+number.
+Peak calling parameters
+Specify the command line program and parameters used for read mapping and peak calling, including the ChIP, control and index files 
+used.
+Data quality
+Describe the methods used to ensure data quality in full detail, including how many peaks are at FDR 5% and above 5-fold enrichment.
+Software
+Describe the software used to collect and analyze the ChIP-seq data. For custom code that has been deposited into a community 
+repository, provide accession details.
+Flow Cytometry
+Plots
+Confirm that:
+The axis labels state the marker and fluorochrome used (e.g. CD4-FITC).
+The axis scales are clearly visible. Include numbers along axes only for bottom left plot of group (a 'group' is an analysis of identical markers).
+All plots are contour plots with outliers or pseudocolor plots.
+A numerical value for number of cells or percentage (with statistics) is provided.
+Methodology
+Sample preparation
+Describe the sample preparation, detailing the biological source of the cells and any tissue processing steps used.
+Instrument
+Identify the instrument used for data collection, specifying make and model number.
+Software
+Describe the software used to collect and analyze the flow cytometry data. For custom code that has been deposited into a 
+community repository, provide accession details.
+Cell population abundance
+Describe the abundance of the relevant cell populations within post-sort fractions, providing details on the purity of the 
+samples and how it was determined.
+Gating strategy
+Describe the gating strategy used for all relevant experiments, specifying the preliminary FSC/SSC gates of the starting cell 
+population, indicating where boundaries between "positive" and "negative" staining cell populations are defined.
+Tick this box to confirm that a figure exemplifying the gating strategy is provided in the Supplementary Information.
+Magnetic resonance imaging
+Experimental design
+Design type
+Indicate task or resting state; event-related or block design.
+
+
+--- PAGE 55 ---
+
+7
+nature portfolio  |  reporting summary
+March 2021
+Design specifications
+Specify the number of blocks, trials or experimental units per session and/or subject, and specify the length of each trial 
+or block (if trials are blocked) and interval between trials.
+Behavioral performance measures
+State number and/or type of variables recorded (e.g. correct button press, response time) and what statistics were used 
+to establish that the subjects were performing the task as expected (e.g. mean, range, and/or standard deviation across 
+subjects).
+Acquisition
+Imaging type(s)
+Specify: functional, structural, diffusion, perfusion.
+Field strength
+Specify in Tesla
+Sequence & imaging parameters
+Specify the pulse sequence type (gradient echo, spin echo, etc.), imaging type (EPI, spiral, etc.), field of view, matrix size, 
+slice thickness, orientation and TE/TR/flip angle.
+Area of acquisition
+State whether a whole brain scan was used OR define the area of acquisition, describing how the region was determined.
+Diffusion MRI
+Used
+Not used
+Preprocessing
+Preprocessing software
+Provide detail on software version and revision number and on specific parameters (model/functions, brain extraction, 
+segmentation, smoothing kernel size, etc.).
+Normalization
+If data were normalized/standardized, describe the approach(es): specify linear or non-linear and define image types used for 
+transformation OR indicate that data were not normalized and explain rationale for lack of normalization.
+Normalization template
+Describe the template used for normalization/transformation, specifying subject space or group standardized space (e.g. 
+original Talairach, MNI305, ICBM152) OR indicate that the data were not normalized.
+Noise and artifact removal
+Describe your procedure(s) for artifact and structured noise removal, specifying motion parameters, tissue signals and 
+physiological signals (heart rate, respiration).
+Volume censoring
+Define your software and/or method and criteria for volume censoring, and state the extent of such censoring.
+Statistical modeling & inference
+Model type and settings
+Specify type (mass univariate, multivariate, RSA, predictive, etc.) and describe essential details of the model at the first and 
+second levels (e.g. fixed, random or mixed effects; drift or auto-correlation).
+Effect(s) tested
+Define precise effect in terms of the task or stimulus conditions instead of psychological concepts and indicate whether 
+ANOVA or factorial designs were used.
+Specify type of analysis:
+Whole brain
+ROI-based
+Both
+Statistic type for inference
+(See Eklund et al. 2016)
+Specify voxel-wise or cluster-wise and report all relevant parameters for cluster-wise methods.
+Correction
+Describe the type of correction and how it is obtained for multiple comparisons (e.g. FWE, FDR, permutation or Monte Carlo).
+Models & analysis
+n/a Involved in the study
+Functional and/or effective connectivity
+Graph analysis
+Multivariate modeling or predictive analysis
+Functional and/or effective connectivity
+Report the measures of dependence used and the model details (e.g. Pearson correlation, partial correlation, 
+mutual information).
+Graph analysis
+Report the dependent variable and connectivity measure, specifying weighted graph or binarized graph, 
+subject- or group-level, and the global and/or node summaries used (e.g. clustering coefficient, efficiency, 
+etc.).
+Multivariate modeling and predictive analysis
+Specify independent variables, features extraction and dimension reduction, model, training and evaluation 
+metrics.

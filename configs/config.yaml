@@ -1,0 +1,60 @@
+# Main configuration file for VirtualRodent neural decoding
+
+defaults:
+  - model: lstm_multimodal
+  - data: per_session
+  - _self_
+
+experiment_name: "rodent_decoder_${data.strategy}_${now:%Y%m%d_%H%M%S}"
+seed: 42
+
+# Optional: specify a single session for per-session training
+# If null, trains all sessions
+session_id: null
+
+# Model configuration (overridden by model/*.yaml)
+model:
+  hidden_dim: 128
+  num_layers: 2
+  bidirectional: true
+  rnn_type: "lstm"
+  input_mode: "multimodal"
+  dropout: 0.2
+  learning_rate: 1e-3
+  lambda_velocity: 0.1
+  weight_decay: 1e-5
+  scheduler_patience: 5
+  scheduler_factor: 0.5
+
+# Data configuration (overridden by data/*.yaml)
+data:
+  data_dir: "data/Virtual_Rodent"
+  strategy: "per_session"
+  neural_history: 750  # 15 seconds at 50Hz
+  pose_history: 750
+  pose_horizon: 250    # 5 seconds at 50Hz
+  batch_size: 32
+  num_workers: 4
+  brain_regions: null  # null = all regions
+  animals: null        # null = all animals
+
+# Trainer configuration
+trainer:
+  max_epochs: null
+  accelerator: "auto"  # auto-detect GPU/MPS/CPU
+  devices: 1
+  gradient_clip_val: 0.1
+  patience: 15  # For early stopping
+  check_val_every_n_epoch: 1
+  log_every_n_steps: 10
+  val_check_interval: 8
+  limit_val_batches: 8
+  max_steps: 16
+  limit_test_batches: 64
+
+# Paths
+paths:
+  checkpoints: "outs/checkpoints"
+  results: "outs/results"
+  visualizations: "outs/visualizations"
+  logs: "logs"
