@@ -116,5 +116,6 @@ outs/*
 # Node modules (for website)
 node_modules/
 
-outs/
-outputs/
+outs/*
+outputs/*
+logs/*
