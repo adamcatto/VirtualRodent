@@ -948,6 +948,43 @@ section h2 {
   cursor: pointer;
 }
 
+/* Render Mode Controls */
+.render-mode-controls {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: flex;
+  gap: 4px;
+  background: rgba(26, 26, 46, 0.9);
+  padding: 6px;
+  border-radius: 6px;
+  z-index: 10;
+}
+
+.render-mode-controls button {
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: #2a2a4e;
+  color: #e8e8ff;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 1.1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.render-mode-controls button:hover {
+  background: #3a3a5e;
+}
+
+.render-mode-controls button.active {
+  background: #667eea;
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.4);
+}
+
 /* Diagnostics Panel */
 .diagnostics-panel {
   background: linear-gradient(135deg, #16213e 0%, #1a1a2e 100%);
