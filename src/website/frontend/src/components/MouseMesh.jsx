@@ -32,21 +32,103 @@ const KP = {
 const NUM_KEYPOINTS = 23
 const DEFAULT_CAMERA_DISTANCE = 600
 
-// Mouse colors
+// Mouse colors - more realistic
 const COLORS = {
-  body: 0x8B7355,      // Brown/gray fur
-  belly: 0xD2B48C,     // Tan belly
-  ears: 0xFFB6C1,      // Pink ears
+  body: 0x6B5344,      // Darker brown fur
+  bodyLight: 0x8B7355, // Lighter brown highlights
+  belly: 0xC4A77D,     // Tan belly
+  ears: 0xE8B4B8,      // Pink ears (inner)
+  earOuter: 0x7A6655,  // Darker ear outer
   nose: 0xFFAAAA,      // Pink nose
   eyes: 0x111111,      // Black eyes
-  tail: 0xFFB6C1,      // Pink tail
-  paws: 0xFFCCCC,      // Light pink paws
+  eyeHighlight: 0xFFFFFF, // Eye highlight
+  tail: 0xDDA0A0,      // Pinkish tail
+  paws: 0xE8C4C4,      // Light pink paws
+  whiskers: 0x333333,  // Dark whiskers
+}
+
+// Spring physics constants
+const SPRING_STIFFNESS = 0.15
+const SPRING_DAMPING = 0.7
+
+/**
+ * Simple 2-bone IK solver (for limbs)
+ * Given shoulder, target (paw), and bone lengths, returns elbow position
+ */
+function solveIK2Bone(shoulder, target, upperLength, lowerLength, bendDirection) {
+  const shoulderToTarget = new THREE.Vector3().subVectors(target, shoulder)
+  const distance = shoulderToTarget.length()
+  
+  // Clamp distance to reachable range
+  const maxReach = upperLength + lowerLength - 0.1
+  const minReach = Math.abs(upperLength - lowerLength) + 0.1
+  
+  if (distance > maxReach) {
+    // Target too far - stretch towards it
+    const dir = shoulderToTarget.normalize()
+    return shoulder.clone().addScaledVector(dir, upperLength)
+  }
+  
+  if (distance < minReach) {
+    // Target too close - bend maximally
+    const dir = shoulderToTarget.normalize()
+    const perpendicular = new THREE.Vector3().crossVectors(dir, bendDirection).normalize()
+    return shoulder.clone().addScaledVector(dir, upperLength * 0.5).addScaledVector(perpendicular, upperLength * 0.8)
+  }
+  
+  // Law of cosines to find elbow angle
+  const a = upperLength
+  const b = lowerLength
+  const c = distance
+  
+  const cosAngle = (a * a + c * c - b * b) / (2 * a * c)
+  const angle = Math.acos(Math.max(-1, Math.min(1, cosAngle)))
+  
+  // Calculate elbow position
+  const dirToTarget = shoulderToTarget.normalize()
+  const perpendicular = new THREE.Vector3().crossVectors(dirToTarget, bendDirection).normalize()
+  
+  const elbow = shoulder.clone()
+    .addScaledVector(dirToTarget, Math.cos(angle) * upperLength)
+    .addScaledVector(perpendicular, Math.sin(angle) * upperLength)
+  
+  return elbow
+}
+
+/**
+ * Spring class for secondary motion
+ */
+class Spring {
+  constructor(target) {
+    this.position = target.clone()
+    this.velocity = new THREE.Vector3()
+    this.target = target.clone()
+  }
+  
+  update(newTarget, dt = 1/50) {
+    this.target.copy(newTarget)
+    
+    // Spring force
+    const displacement = new THREE.Vector3().subVectors(this.target, this.position)
+    const springForce = displacement.multiplyScalar(SPRING_STIFFNESS)
+    
+    // Apply force to velocity
+    this.velocity.add(springForce)
+    
+    // Damping
+    this.velocity.multiplyScalar(SPRING_DAMPING)
+    
+    // Update position
+    this.position.add(this.velocity)
+    
+    return this.position.clone()
+  }
 }
 
 /**
  * Create a smooth tube/capsule between two points
  */
-function createCapsule(scene, p1, p2, radius, color, segments = 8) {
+function createCapsule(p1, p2, radius, material) {
   const direction = new THREE.Vector3().subVectors(p2, p1)
   const length = direction.length()
   
@@ -54,17 +136,10 @@ function createCapsule(scene, p1, p2, radius, color, segments = 8) {
   
   const midpoint = new THREE.Vector3().addVectors(p1, p2).multiplyScalar(0.5)
   
-  // Create capsule geometry (cylinder + hemispheres)
-  const geometry = new THREE.CapsuleGeometry(radius, length, 4, segments)
-  const material = new THREE.MeshPhongMaterial({ 
-    color,
-    shininess: 30,
-  })
-  
+  const geometry = new THREE.CapsuleGeometry(radius, length, 4, 8)
   const mesh = new THREE.Mesh(geometry, material)
   mesh.position.copy(midpoint)
   
-  // Orient to point from p1 to p2
   const axis = new THREE.Vector3(0, 1, 0)
   const quaternion = new THREE.Quaternion()
   quaternion.setFromUnitVectors(axis, direction.clone().normalize())
@@ -74,76 +149,47 @@ function createCapsule(scene, p1, p2, radius, color, segments = 8) {
 }
 
 /**
- * Create an ellipsoid (scaled sphere) at a position
+ * Create whiskers
  */
-function createEllipsoid(position, radiusX, radiusY, radiusZ, color) {
-  const geometry = new THREE.SphereGeometry(1, 16, 12)
-  const material = new THREE.MeshPhongMaterial({ 
-    color,
-    shininess: 30,
+function createWhiskers(snoutPos, headDir, upDir, material) {
+  const whiskers = new THREE.Group()
+  const rightDir = new THREE.Vector3().crossVectors(headDir, upDir).normalize()
+  
+  const whiskerAngles = [-30, -10, 10, 30]
+  const whiskerLength = 25
+  
+  whiskerAngles.forEach((angleDeg, i) => {
+    const angle = (angleDeg * Math.PI) / 180
+    const side = i < 2 ? 1 : -1
+    
+    // Left whisker
+    const leftStart = snoutPos.clone().addScaledVector(rightDir, -4)
+    const leftEnd = leftStart.clone()
+      .addScaledVector(rightDir, -whiskerLength * Math.cos(angle))
+      .addScaledVector(headDir, whiskerLength * Math.sin(angle) * 0.3)
+      .addScaledVector(upDir, side * 3)
+    
+    const leftGeom = new THREE.BufferGeometry().setFromPoints([leftStart, leftEnd])
+    const leftWhisker = new THREE.Line(leftGeom, material)
+    whiskers.add(leftWhisker)
+    
+    // Right whisker
+    const rightStart = snoutPos.clone().addScaledVector(rightDir, 4)
+    const rightEnd = rightStart.clone()
+      .addScaledVector(rightDir, whiskerLength * Math.cos(angle))
+      .addScaledVector(headDir, whiskerLength * Math.sin(angle) * 0.3)
+      .addScaledVector(upDir, side * 3)
+    
+    const rightGeom = new THREE.BufferGeometry().setFromPoints([rightStart, rightEnd])
+    const rightWhisker = new THREE.Line(rightGeom, material)
+    whiskers.add(rightWhisker)
   })
-  const mesh = new THREE.Mesh(geometry, material)
-  mesh.position.copy(position)
-  mesh.scale.set(radiusX, radiusY, radiusZ)
-  return mesh
+  
+  return whiskers
 }
 
 /**
- * Create a smooth spline-based body using TubeGeometry
- */
-function createSplineBody(keypoints, indices, radius, taperFn, color) {
-  const points = indices.map(i => keypoints[i])
-  
-  // Create a smooth curve through the points
-  const curve = new THREE.CatmullRomCurve3(points)
-  
-  // Create tube geometry with varying radius
-  const segments = 32
-  const radialSegments = 12
-  
-  // Custom tube with tapering
-  const geometry = new THREE.TubeGeometry(curve, segments, radius, radialSegments, false)
-  
-  // Apply tapering by modifying vertices
-  const positions = geometry.attributes.position
-  for (let i = 0; i < positions.count; i++) {
-    const vertex = new THREE.Vector3(
-      positions.getX(i),
-      positions.getY(i),
-      positions.getZ(i)
-    )
-    
-    // Find closest point on curve to determine taper
-    // This is approximate - we use the segment index
-    const segmentIndex = Math.floor(i / radialSegments) / segments
-    const taper = taperFn(segmentIndex)
-    
-    // Get the center point at this segment
-    const centerPoint = curve.getPoint(Math.min(1, segmentIndex))
-    
-    // Scale distance from center
-    const offset = vertex.clone().sub(centerPoint)
-    const currentRadius = offset.length()
-    if (currentRadius > 0.01) {
-      offset.normalize().multiplyScalar(currentRadius * taper)
-      positions.setXYZ(i, centerPoint.x + offset.x, centerPoint.y + offset.y, centerPoint.z + offset.z)
-    }
-  }
-  
-  geometry.attributes.position.needsUpdate = true
-  geometry.computeVertexNormals()
-  
-  const material = new THREE.MeshPhongMaterial({
-    color,
-    shininess: 30,
-    side: THREE.DoubleSide,
-  })
-  
-  return new THREE.Mesh(geometry, material)
-}
-
-/**
- * MouseMesh - A procedurally generated 3D mouse driven by keypoints
+ * MouseMesh - A procedurally generated 3D mouse with IK and spring physics
  */
 function MouseMesh({ poseData, title }) {
   const containerRef = useRef(null)
@@ -153,6 +199,75 @@ function MouseMesh({ poseData, title }) {
   const controlsRef = useRef(null)
   const mouseGroupRef = useRef(null)
   const [zoomPercentage, setZoomPercentage] = useState(100)
+  
+  // Spring physics state for secondary motion
+  const springsRef = useRef({
+    leftEar: null,
+    rightEar: null,
+    tailMid: null,
+    tailTip: null,
+  })
+  
+  // Previous keypoints for interpolation
+  const prevKeypointsRef = useRef(null)
+  
+  // Materials (reusable)
+  const materialsRef = useRef(null)
+
+  // Initialize materials
+  const getMaterials = useCallback(() => {
+    if (materialsRef.current) return materialsRef.current
+    
+    materialsRef.current = {
+      body: new THREE.MeshStandardMaterial({ 
+        color: COLORS.body,
+        roughness: 0.8,
+        metalness: 0.0,
+      }),
+      bodyLight: new THREE.MeshStandardMaterial({ 
+        color: COLORS.bodyLight,
+        roughness: 0.7,
+        metalness: 0.0,
+      }),
+      belly: new THREE.MeshStandardMaterial({ 
+        color: COLORS.belly,
+        roughness: 0.8,
+        metalness: 0.0,
+      }),
+      ear: new THREE.MeshStandardMaterial({ 
+        color: COLORS.ears,
+        roughness: 0.6,
+        metalness: 0.0,
+        side: THREE.DoubleSide,
+      }),
+      nose: new THREE.MeshStandardMaterial({ 
+        color: COLORS.nose, 
+        roughness: 0.4,
+        metalness: 0.1,
+      }),
+      eye: new THREE.MeshStandardMaterial({ 
+        color: COLORS.eyes, 
+        roughness: 0.1,
+        metalness: 0.3,
+      }),
+      tail: new THREE.MeshStandardMaterial({ 
+        color: COLORS.tail,
+        roughness: 0.5,
+        metalness: 0.0,
+      }),
+      paw: new THREE.MeshStandardMaterial({ 
+        color: COLORS.paws,
+        roughness: 0.6,
+        metalness: 0.0,
+      }),
+      whisker: new THREE.LineBasicMaterial({ 
+        color: COLORS.whiskers,
+        linewidth: 1,
+      }),
+    }
+    
+    return materialsRef.current
+  }, [])
 
   // Parse keypoints from pose data
   const parseKeypoints = useCallback((data) => {
@@ -163,18 +278,56 @@ function MouseMesh({ poseData, title }) {
       const x = data[i]
       const y = data[NUM_KEYPOINTS + i]
       const z = data[2 * NUM_KEYPOINTS + i]
-      // Convert to Three.js coords: y as vertical (up), x as lateral, z as depth
       keypoints.push(new THREE.Vector3(x, z, y))
     }
     return keypoints
   }, [])
 
-  // Build the mouse mesh from keypoints
-  const buildMouseMesh = useCallback((keypoints) => {
-    const group = new THREE.Group()
+  // Interpolate between previous and current keypoints
+  const interpolateKeypoints = useCallback((current, previous, t = 0.3) => {
+    if (!previous) return current
     
-    // === BODY (main torso) ===
-    // Create smooth body from neck to tail base
+    return current.map((kp, i) => {
+      return new THREE.Vector3().lerpVectors(previous[i], kp, t)
+    })
+  }, [])
+
+  // Apply spring physics to secondary elements
+  const applySpringPhysics = useCallback((keypoints) => {
+    const springs = springsRef.current
+    
+    // Initialize springs if needed
+    if (!springs.leftEar) {
+      springs.leftEar = new Spring(keypoints[KP.LEFT_EAR])
+      springs.rightEar = new Spring(keypoints[KP.RIGHT_EAR])
+      springs.tailMid = new Spring(keypoints[KP.TAIL_MID])
+      springs.tailTip = new Spring(keypoints[KP.TAIL_TIP])
+    }
+    
+    // Update springs and get smoothed positions
+    const smoothedKeypoints = [...keypoints]
+    smoothedKeypoints[KP.LEFT_EAR] = springs.leftEar.update(keypoints[KP.LEFT_EAR])
+    smoothedKeypoints[KP.RIGHT_EAR] = springs.rightEar.update(keypoints[KP.RIGHT_EAR])
+    smoothedKeypoints[KP.TAIL_MID] = springs.tailMid.update(keypoints[KP.TAIL_MID])
+    smoothedKeypoints[KP.TAIL_TIP] = springs.tailTip.update(keypoints[KP.TAIL_TIP])
+    
+    return smoothedKeypoints
+  }, [])
+
+  // Build the mouse mesh from keypoints with IK
+  const buildMouseMesh = useCallback((rawKeypoints) => {
+    const group = new THREE.Group()
+    const materials = getMaterials()
+    
+    // Apply spring physics for secondary motion
+    const keypoints = applySpringPhysics(rawKeypoints)
+    
+    // Calculate body directions for reference
+    const spineDir = new THREE.Vector3().subVectors(keypoints[KP.NECK], keypoints[KP.TAIL_BASE]).normalize()
+    const upDir = new THREE.Vector3(0, 1, 0)
+    const rightDir = new THREE.Vector3().crossVectors(spineDir, upDir).normalize()
+    
+    // === BODY (main torso) - using smooth spline ===
     const bodyPoints = [
       keypoints[KP.NECK],
       keypoints[KP.SPINE_MID],
@@ -182,149 +335,217 @@ function MouseMesh({ poseData, title }) {
       keypoints[KP.TAIL_BASE],
     ]
     const bodyCurve = new THREE.CatmullRomCurve3(bodyPoints)
-    const bodyGeometry = new THREE.TubeGeometry(bodyCurve, 24, 18, 12, false)
-    const bodyMaterial = new THREE.MeshPhongMaterial({ 
-      color: COLORS.body,
-      shininess: 30,
-    })
-    const bodyMesh = new THREE.Mesh(bodyGeometry, bodyMaterial)
+    const bodyGeometry = new THREE.TubeGeometry(bodyCurve, 32, 18, 16, false)
+    const bodyMesh = new THREE.Mesh(bodyGeometry, materials.body)
+    bodyMesh.castShadow = true
     group.add(bodyMesh)
     
     // === HEAD ===
-    // Create head as ellipsoid from neck to nose
-    const headCenter = new THREE.Vector3().lerpVectors(
-      keypoints[KP.HEAD],
-      keypoints[KP.NOSE],
-      0.3
-    )
-    const headDir = new THREE.Vector3().subVectors(keypoints[KP.NOSE], keypoints[KP.NECK])
-    const headLength = headDir.length() * 0.6
-    
-    const headMesh = createEllipsoid(headCenter, 15, 12, headLength * 0.4, COLORS.body)
-    // Orient head towards nose
-    headMesh.lookAt(keypoints[KP.NOSE])
+    const headCenter = new THREE.Vector3().lerpVectors(keypoints[KP.HEAD], keypoints[KP.NOSE], 0.25)
+    const headGeometry = new THREE.SphereGeometry(14, 24, 16)
+    const headMesh = new THREE.Mesh(headGeometry, materials.body)
+    headMesh.position.copy(headCenter)
+    headMesh.scale.set(1.1, 0.9, 1.3)
+    headMesh.castShadow = true
     group.add(headMesh)
     
     // === SNOUT ===
-    const snoutMesh = createEllipsoid(keypoints[KP.SNOUT], 6, 5, 8, COLORS.body)
+    const snoutGeometry = new THREE.SphereGeometry(7, 16, 12)
+    const snoutMesh = new THREE.Mesh(snoutGeometry, materials.body)
+    snoutMesh.position.copy(keypoints[KP.SNOUT])
+    snoutMesh.scale.set(0.8, 0.7, 1.2)
+    snoutMesh.castShadow = true
     group.add(snoutMesh)
     
-    // Nose tip (pink)
-    const noseGeometry = new THREE.SphereGeometry(4, 8, 8)
-    const noseMaterial = new THREE.MeshPhongMaterial({ color: COLORS.nose, shininess: 60 })
-    const noseMesh = new THREE.Mesh(noseGeometry, noseMaterial)
+    // Nose tip (pink, shiny)
+    const noseGeometry = new THREE.SphereGeometry(3.5, 12, 12)
+    const noseMesh = new THREE.Mesh(noseGeometry, materials.nose)
     noseMesh.position.copy(keypoints[KP.NOSE])
+    noseMesh.castShadow = true
     group.add(noseMesh)
     
     // === EYES ===
     const headToNose = new THREE.Vector3().subVectors(keypoints[KP.NOSE], keypoints[KP.HEAD]).normalize()
-    const eyeOffset = headToNose.clone().multiplyScalar(8)
-    const leftEarDir = new THREE.Vector3().subVectors(keypoints[KP.LEFT_EAR], keypoints[KP.HEAD]).normalize()
-    const rightEarDir = new THREE.Vector3().subVectors(keypoints[KP.RIGHT_EAR], keypoints[KP.HEAD]).normalize()
+    const eyeForwardOffset = headToNose.clone().multiplyScalar(6)
     
-    const eyeGeometry = new THREE.SphereGeometry(3, 8, 8)
-    const eyeMaterial = new THREE.MeshPhongMaterial({ color: COLORS.eyes, shininess: 100 })
+    const eyeGeometry = new THREE.SphereGeometry(4, 16, 16)
     
-    const leftEye = new THREE.Mesh(eyeGeometry, eyeMaterial)
-    leftEye.position.copy(keypoints[KP.HEAD]).add(eyeOffset).addScaledVector(leftEarDir, 8)
+    // Left eye
+    const leftEyePos = keypoints[KP.HEAD].clone().add(eyeForwardOffset).addScaledVector(rightDir, -7).addScaledVector(upDir, 3)
+    const leftEye = new THREE.Mesh(eyeGeometry, materials.eye)
+    leftEye.position.copy(leftEyePos)
+    leftEye.scale.set(1, 1.1, 0.9)
     group.add(leftEye)
     
-    const rightEye = new THREE.Mesh(eyeGeometry, eyeMaterial)
-    rightEye.position.copy(keypoints[KP.HEAD]).add(eyeOffset).addScaledVector(rightEarDir, 8)
+    // Eye highlight
+    const highlightGeom = new THREE.SphereGeometry(1.5, 8, 8)
+    const highlightMat = new THREE.MeshBasicMaterial({ color: 0xFFFFFF })
+    const leftHighlight = new THREE.Mesh(highlightGeom, highlightMat)
+    leftHighlight.position.copy(leftEyePos).addScaledVector(headToNose, 2).addScaledVector(upDir, 1.5)
+    group.add(leftHighlight)
+    
+    // Right eye
+    const rightEyePos = keypoints[KP.HEAD].clone().add(eyeForwardOffset).addScaledVector(rightDir, 7).addScaledVector(upDir, 3)
+    const rightEye = new THREE.Mesh(eyeGeometry, materials.eye)
+    rightEye.position.copy(rightEyePos)
+    rightEye.scale.set(1, 1.1, 0.9)
     group.add(rightEye)
     
-    // === EARS ===
-    const earGeometry = new THREE.SphereGeometry(10, 12, 12)
-    const earMaterial = new THREE.MeshPhongMaterial({ 
-      color: COLORS.ears,
-      shininess: 20,
-      transparent: true,
-      opacity: 0.95,
-    })
+    const rightHighlight = new THREE.Mesh(highlightGeom, highlightMat)
+    rightHighlight.position.copy(rightEyePos).addScaledVector(headToNose, 2).addScaledVector(upDir, 1.5)
+    group.add(rightHighlight)
     
-    const leftEar = new THREE.Mesh(earGeometry, earMaterial)
+    // === EARS (with spring physics applied) ===
+    const earGeometry = new THREE.CircleGeometry(12, 16)
+    
+    // Left ear
+    const leftEar = new THREE.Mesh(earGeometry, materials.ear)
     leftEar.position.copy(keypoints[KP.LEFT_EAR])
-    leftEar.scale.set(1, 0.2, 0.8)
+    leftEar.lookAt(keypoints[KP.LEFT_EAR].clone().add(rightDir).addScaledVector(upDir, 0.5))
+    leftEar.castShadow = true
     group.add(leftEar)
     
-    const rightEar = new THREE.Mesh(earGeometry, earMaterial)
+    // Right ear
+    const rightEar = new THREE.Mesh(earGeometry, materials.ear)
     rightEar.position.copy(keypoints[KP.RIGHT_EAR])
-    rightEar.scale.set(1, 0.2, 0.8)
+    rightEar.lookAt(keypoints[KP.RIGHT_EAR].clone().sub(rightDir).addScaledVector(upDir, 0.5))
+    rightEar.castShadow = true
     group.add(rightEar)
     
-    // === TAIL ===
+    // === WHISKERS ===
+    const whiskers = createWhiskers(keypoints[KP.SNOUT], headToNose, upDir, materials.whisker)
+    group.add(whiskers)
+    
+    // === TAIL (with spring physics applied) ===
     const tailPoints = [
       keypoints[KP.TAIL_BASE],
       keypoints[KP.TAIL_MID],
       keypoints[KP.TAIL_TIP],
     ]
     const tailCurve = new THREE.CatmullRomCurve3(tailPoints)
-    const tailGeometry = new THREE.TubeGeometry(tailCurve, 16, 3, 8, false)
-    const tailMaterial = new THREE.MeshPhongMaterial({ 
-      color: COLORS.tail,
-      shininess: 40,
-    })
-    const tailMesh = new THREE.Mesh(tailGeometry, tailMaterial)
+    
+    // Tapered tail using custom geometry
+    const tailSegments = 20
+    const tailRadialSegments = 8
+    const tailGeometry = new THREE.TubeGeometry(tailCurve, tailSegments, 4, tailRadialSegments, false)
+    
+    // Taper the tail
+    const positions = tailGeometry.attributes.position
+    for (let i = 0; i < positions.count; i++) {
+      const segmentRatio = Math.floor(i / tailRadialSegments) / tailSegments
+      const taper = 1 - segmentRatio * 0.8 // Taper from 100% to 20%
+      
+      const x = positions.getX(i)
+      const y = positions.getY(i)
+      const z = positions.getZ(i)
+      
+      const center = tailCurve.getPoint(Math.min(1, segmentRatio))
+      const offset = new THREE.Vector3(x - center.x, y - center.y, z - center.z)
+      offset.multiplyScalar(taper)
+      
+      positions.setXYZ(i, center.x + offset.x, center.y + offset.y, center.z + offset.z)
+    }
+    tailGeometry.attributes.position.needsUpdate = true
+    tailGeometry.computeVertexNormals()
+    
+    const tailMesh = new THREE.Mesh(tailGeometry, materials.tail)
+    tailMesh.castShadow = true
     group.add(tailMesh)
     
-    // === FRONT LEGS ===
-    const legRadius = 4
-    const pawRadius = 3
+    // === LIMBS WITH IK ===
+    const upperLegLength = 25
+    const lowerLegLength = 20
+    const upperArmLength = 18
+    const lowerArmLength = 15
     
-    // Left front leg
-    const leftUpperArm = createCapsule(group, keypoints[KP.LEFT_SHOULDER], keypoints[KP.LEFT_ELBOW], legRadius, COLORS.body)
-    if (leftUpperArm) group.add(leftUpperArm)
+    // Front left leg with IK
+    const leftElbowIK = solveIK2Bone(
+      keypoints[KP.LEFT_SHOULDER],
+      keypoints[KP.LEFT_WRIST],
+      upperArmLength,
+      lowerArmLength,
+      new THREE.Vector3(0, -1, 1).normalize()
+    )
     
-    const leftForearm = createCapsule(group, keypoints[KP.LEFT_ELBOW], keypoints[KP.LEFT_WRIST], legRadius * 0.8, COLORS.body)
-    if (leftForearm) group.add(leftForearm)
+    const leftUpperArm = createCapsule(keypoints[KP.LEFT_SHOULDER], leftElbowIK, 4.5, materials.body)
+    if (leftUpperArm) { leftUpperArm.castShadow = true; group.add(leftUpperArm) }
     
-    const leftPawGeom = new THREE.SphereGeometry(pawRadius, 8, 8)
-    const pawMaterial = new THREE.MeshPhongMaterial({ color: COLORS.paws, shininess: 30 })
-    const leftPaw = new THREE.Mesh(leftPawGeom, pawMaterial)
+    const leftForearm = createCapsule(leftElbowIK, keypoints[KP.LEFT_WRIST], 3.5, materials.body)
+    if (leftForearm) { leftForearm.castShadow = true; group.add(leftForearm) }
+    
+    const leftPawGeom = new THREE.SphereGeometry(4, 12, 12)
+    const leftPaw = new THREE.Mesh(leftPawGeom, materials.paw)
     leftPaw.position.copy(keypoints[KP.LEFT_WRIST])
+    leftPaw.scale.set(1, 0.6, 1.2)
+    leftPaw.castShadow = true
     group.add(leftPaw)
     
-    // Right front leg
-    const rightUpperArm = createCapsule(group, keypoints[KP.RIGHT_SHOULDER], keypoints[KP.RIGHT_ELBOW], legRadius, COLORS.body)
-    if (rightUpperArm) group.add(rightUpperArm)
+    // Front right leg with IK
+    const rightElbowIK = solveIK2Bone(
+      keypoints[KP.RIGHT_SHOULDER],
+      keypoints[KP.RIGHT_WRIST],
+      upperArmLength,
+      lowerArmLength,
+      new THREE.Vector3(0, -1, 1).normalize()
+    )
     
-    const rightForearm = createCapsule(group, keypoints[KP.RIGHT_ELBOW], keypoints[KP.RIGHT_WRIST], legRadius * 0.8, COLORS.body)
-    if (rightForearm) group.add(rightForearm)
+    const rightUpperArm = createCapsule(keypoints[KP.RIGHT_SHOULDER], rightElbowIK, 4.5, materials.body)
+    if (rightUpperArm) { rightUpperArm.castShadow = true; group.add(rightUpperArm) }
     
-    const rightPaw = new THREE.Mesh(leftPawGeom.clone(), pawMaterial)
+    const rightForearm = createCapsule(rightElbowIK, keypoints[KP.RIGHT_WRIST], 3.5, materials.body)
+    if (rightForearm) { rightForearm.castShadow = true; group.add(rightForearm) }
+    
+    const rightPaw = new THREE.Mesh(leftPawGeom.clone(), materials.paw)
     rightPaw.position.copy(keypoints[KP.RIGHT_WRIST])
+    rightPaw.scale.set(1, 0.6, 1.2)
+    rightPaw.castShadow = true
     group.add(rightPaw)
     
-    // === BACK LEGS ===
-    const backLegRadius = 5
+    // Back left leg with IK
+    const leftKneeIK = solveIK2Bone(
+      keypoints[KP.LEFT_HIP],
+      keypoints[KP.LEFT_ANKLE],
+      upperLegLength,
+      lowerLegLength,
+      new THREE.Vector3(0, 1, 1).normalize()
+    )
     
-    // Left back leg
-    const leftThigh = createCapsule(group, keypoints[KP.LEFT_HIP], keypoints[KP.LEFT_KNEE], backLegRadius, COLORS.body)
-    if (leftThigh) group.add(leftThigh)
+    const leftThigh = createCapsule(keypoints[KP.LEFT_HIP], leftKneeIK, 6, materials.body)
+    if (leftThigh) { leftThigh.castShadow = true; group.add(leftThigh) }
     
-    const leftShin = createCapsule(group, keypoints[KP.LEFT_KNEE], keypoints[KP.LEFT_ANKLE], backLegRadius * 0.7, COLORS.body)
-    if (leftShin) group.add(leftShin)
+    const leftShin = createCapsule(leftKneeIK, keypoints[KP.LEFT_ANKLE], 4.5, materials.body)
+    if (leftShin) { leftShin.castShadow = true; group.add(leftShin) }
     
-    const leftFootGeom = new THREE.SphereGeometry(pawRadius * 1.2, 8, 8)
-    const leftFoot = new THREE.Mesh(leftFootGeom, pawMaterial)
+    const leftFootGeom = new THREE.SphereGeometry(5, 12, 12)
+    const leftFoot = new THREE.Mesh(leftFootGeom, materials.paw)
     leftFoot.position.copy(keypoints[KP.LEFT_ANKLE])
-    leftFoot.scale.set(1.2, 0.6, 1.5)  // Flatten and elongate foot
+    leftFoot.scale.set(1.3, 0.5, 1.8)
+    leftFoot.castShadow = true
     group.add(leftFoot)
     
-    // Right back leg
-    const rightThigh = createCapsule(group, keypoints[KP.RIGHT_HIP], keypoints[KP.RIGHT_KNEE], backLegRadius, COLORS.body)
-    if (rightThigh) group.add(rightThigh)
+    // Back right leg with IK
+    const rightKneeIK = solveIK2Bone(
+      keypoints[KP.RIGHT_HIP],
+      keypoints[KP.RIGHT_ANKLE],
+      upperLegLength,
+      lowerLegLength,
+      new THREE.Vector3(0, 1, 1).normalize()
+    )
     
-    const rightShin = createCapsule(group, keypoints[KP.RIGHT_KNEE], keypoints[KP.RIGHT_ANKLE], backLegRadius * 0.7, COLORS.body)
-    if (rightShin) group.add(rightShin)
+    const rightThigh = createCapsule(keypoints[KP.RIGHT_HIP], rightKneeIK, 6, materials.body)
+    if (rightThigh) { rightThigh.castShadow = true; group.add(rightThigh) }
     
-    const rightFoot = new THREE.Mesh(leftFootGeom.clone(), pawMaterial)
+    const rightShin = createCapsule(rightKneeIK, keypoints[KP.RIGHT_ANKLE], 4.5, materials.body)
+    if (rightShin) { rightShin.castShadow = true; group.add(rightShin) }
+    
+    const rightFoot = new THREE.Mesh(leftFootGeom.clone(), materials.paw)
     rightFoot.position.copy(keypoints[KP.RIGHT_ANKLE])
-    rightFoot.scale.set(1.2, 0.6, 1.5)
+    rightFoot.scale.set(1.3, 0.5, 1.8)
+    rightFoot.castShadow = true
     group.add(rightFoot)
     
     return group
-  }, [])
+  }, [getMaterials, applySpringPhysics])
 
   // Initialize Three.js scene
   useEffect(() => {
@@ -334,7 +555,7 @@ function MouseMesh({ poseData, title }) {
     let width = container.clientWidth || 800
     let height = container.clientHeight || 600
 
-    // Scene
+    // Scene with gradient background
     const scene = new THREE.Scene()
     scene.background = new THREE.Color(0x1a1a2e)
     sceneRef.current = scene
@@ -344,11 +565,17 @@ function MouseMesh({ poseData, title }) {
     camera.position.set(300, 300, 600)
     cameraRef.current = camera
 
-    // Renderer
-    const renderer = new THREE.WebGLRenderer({ antialias: true })
+    // Renderer with better quality
+    const renderer = new THREE.WebGLRenderer({ 
+      antialias: true,
+      alpha: true,
+    })
     renderer.setSize(width, height)
-    renderer.setPixelRatio(window.devicePixelRatio)
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
     renderer.shadowMap.enabled = true
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap
+    renderer.toneMapping = THREE.ACESFilmicToneMapping
+    renderer.toneMappingExposure = 1.2
     container.appendChild(renderer.domElement)
     rendererRef.current = renderer
 
@@ -359,7 +586,6 @@ function MouseMesh({ poseData, title }) {
     controls.zoomSpeed = 0.3
     controlsRef.current = controls
 
-    // Update zoom display
     const updateZoomFromCamera = () => {
       const distance = camera.position.distanceTo(controls.target)
       const zoom = Math.round((DEFAULT_CAMERA_DISTANCE / distance) * 100)
@@ -367,22 +593,46 @@ function MouseMesh({ poseData, title }) {
     }
     controls.addEventListener('change', updateZoomFromCamera)
 
-    // Lighting
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.5)
+    // Enhanced lighting for better visuals
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.4)
     scene.add(ambientLight)
     
-    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8)
-    directionalLight.position.set(100, 200, 100)
-    directionalLight.castShadow = true
-    scene.add(directionalLight)
+    // Key light
+    const keyLight = new THREE.DirectionalLight(0xffffff, 1.0)
+    keyLight.position.set(150, 300, 200)
+    keyLight.castShadow = true
+    keyLight.shadow.mapSize.width = 2048
+    keyLight.shadow.mapSize.height = 2048
+    keyLight.shadow.camera.near = 100
+    keyLight.shadow.camera.far = 1000
+    keyLight.shadow.camera.left = -200
+    keyLight.shadow.camera.right = 200
+    keyLight.shadow.camera.top = 200
+    keyLight.shadow.camera.bottom = -200
+    scene.add(keyLight)
     
-    const fillLight = new THREE.DirectionalLight(0xffffff, 0.3)
-    fillLight.position.set(-100, 50, -100)
+    // Fill light
+    const fillLight = new THREE.DirectionalLight(0x8888ff, 0.3)
+    fillLight.position.set(-100, 100, -100)
     scene.add(fillLight)
+    
+    // Rim light
+    const rimLight = new THREE.DirectionalLight(0xffffaa, 0.4)
+    rimLight.position.set(-50, 50, -150)
+    scene.add(rimLight)
+
+    // Ground plane with shadow
+    const groundGeometry = new THREE.PlaneGeometry(1000, 1000)
+    const groundMaterial = new THREE.ShadowMaterial({ opacity: 0.3 })
+    const ground = new THREE.Mesh(groundGeometry, groundMaterial)
+    ground.rotation.x = -Math.PI / 2
+    ground.position.y = 0
+    ground.receiveShadow = true
+    scene.add(ground)
 
     // Grid
     const gridHelper = new THREE.GridHelper(800, 20, 0x444466, 0x333355)
-    gridHelper.position.set(200, 0, 100)
+    gridHelper.position.set(200, 0.1, 100)
     scene.add(gridHelper)
 
     // Axes
@@ -412,7 +662,6 @@ function MouseMesh({ poseData, title }) {
     const resizeObserver = new ResizeObserver(handleResize)
     resizeObserver.observe(container)
     
-    // Initial resize
     setTimeout(() => {
       const actualWidth = container.clientWidth
       const actualHeight = container.clientHeight
@@ -442,17 +691,20 @@ function MouseMesh({ poseData, title }) {
     
     if (!keypoints) return
 
+    // Interpolate with previous frame for smoothness
+    const interpolated = interpolateKeypoints(keypoints, prevKeypointsRef.current, 0.5)
+    prevKeypointsRef.current = keypoints
+
     // Remove old mouse mesh
     if (mouseGroupRef.current) {
       scene.remove(mouseGroupRef.current)
       mouseGroupRef.current.traverse((child) => {
         if (child.geometry) child.geometry.dispose()
-        if (child.material) child.material.dispose()
       })
     }
 
     // Build new mouse mesh
-    const mouseGroup = buildMouseMesh(keypoints)
+    const mouseGroup = buildMouseMesh(interpolated)
     scene.add(mouseGroup)
     mouseGroupRef.current = mouseGroup
 
@@ -462,11 +714,11 @@ function MouseMesh({ poseData, title }) {
     centroid.divideScalar(keypoints.length)
     
     if (controlsRef.current) {
-      controlsRef.current.target.copy(centroid)
+      controlsRef.current.target.lerp(centroid, 0.1)
       controlsRef.current.update()
     }
 
-  }, [poseData, parseKeypoints, buildMouseMesh])
+  }, [poseData, parseKeypoints, interpolateKeypoints, buildMouseMesh])
 
   // Zoom handlers
   const handleZoomIn = useCallback(() => {
@@ -537,4 +789,3 @@ function MouseMesh({ poseData, title }) {
 }
 
 export default MouseMesh
-
