@@ -262,10 +262,17 @@ npm install three  # Already installed
 - [x] Shadow casting
 - [x] ACES filmic tone mapping
 
-## Future Enhancements (Phase 4)
-- [ ] Fur rendering using shell texturing
-- [ ] Physically-based animation for whiskers
-- [ ] Eyelid blinking animation
-- [ ] Ground contact / foot IK
-- [ ] Muscle deformation on body
+### Phase 4: Advanced Features ✅
+- [x] Fur rendering using shell texturing (5 layers on body and head)
+- [x] Physically-based whisker animation (12 whiskers with spring physics)
+- [x] Eyelid blinking animation (random interval 2-6 seconds)
+- [x] Ground contact / foot IK (feet clamped to ground plane)
+- [x] Movement-reactive whiskers (respond to velocity)
+
+## Future Enhancements (Phase 5+)
+- [ ] Muscle deformation (bulging when legs bend)
+- [ ] Breathing animation (subtle body expansion)
+- [ ] Texture-based fur with alpha cutout
+- [ ] Ambient occlusion for fur depth
+- [ ] Whisker collision with environment
 
