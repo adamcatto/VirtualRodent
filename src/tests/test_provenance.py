@@ -115,14 +115,30 @@ class TestStore:
         assert "Run A" in index
         assert "r2_mean" in index
 
-    def test_figures_are_copied(self, tmp_path):
-        # Create a fake figure file.
+    def test_figures_referenced_by_default(self, tmp_path):
+        # By default figures are referenced by path, not copied into git.
         fig = tmp_path / "plot.png"
         fig.write_bytes(b"\x89PNG\r\n\x1a\n fake")
         store = ExperimentStore(tmp_path / "experiments")
         record = log_experiment(
-            name="With figure",
+            name="Ref figure",
             figures=[fig],
+            store=store,
+            capture_git=False,
+            capture_env=False,
+        )
+        exp_dir = store.experiment_dir(record.experiment_id)
+        assert not (exp_dir / "figures").exists()
+        assert str(fig) in record.figures
+
+    def test_figures_copied_when_opted_in(self, tmp_path):
+        fig = tmp_path / "plot.png"
+        fig.write_bytes(b"\x89PNG\r\n\x1a\n fake")
+        store = ExperimentStore(tmp_path / "experiments")
+        record = log_experiment(
+            name="Copied figure",
+            figures=[fig],
+            copy_figures=True,
             store=store,
             capture_git=False,
             capture_env=False,

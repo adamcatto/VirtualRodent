@@ -6,9 +6,24 @@ after the run. It answers, for each run: *what was tried, on what code, in what
 environment, with what choices, and what came out.*
 
 Records live under the top-level [`experiments/`](../experiments/) directory —
-one folder per run — and are committed to git alongside the code. Large binary
-outputs (checkpoints, prediction arrays) stay in the gitignored `outs/` and are
-referenced by path rather than copied in.
+one folder per run — and are committed to git alongside the code. To keep the
+repository lean, only small text files are committed; large binary outputs
+(checkpoints, prediction arrays, **and figures by default**) stay in the
+gitignored `outs/` and are referenced by path rather than copied in.
+
+### Keeping the repository lean
+
+A git-tracked provenance folder should stay text-first and small:
+
+- **Figures are referenced by path, not copied** (`copy_figures=False`, the
+  default). The manifest and README point at the PNGs in `outs/`; nothing
+  binary is committed. Pass `copy_figures=True` only for the occasional run you
+  want to archive or share as a fully self-contained folder.
+- **Checkpoints and arrays are never copied** — only referenced via `artifacts`.
+- **Config is stored once** (in `manifest.json`); the README renders it for
+  humans but no extra copies are written.
+
+A typical committed record is a few kilobytes of JSON and Markdown.
 
 ## What gets recorded
 
@@ -32,7 +47,7 @@ The `manifest.json` (an `ExperimentRecord`) captures:
 | `structure` | How it was structured — splits, architecture, training/eval protocol |
 | `config` | Full parameter / training / eval configuration (verbatim) |
 | `metrics` | Results (arbitrary, possibly nested numeric summaries) |
-| `figures` | Relative paths to saved visualizations |
+| `figures` | Paths to visualizations (referenced by default; copied only if `copy_figures=True`) |
 | `artifacts` | Named references to out-of-git outputs (e.g. checkpoints) |
 | `git` | **Commit hash**, branch, dirty flag, remote — for reproducibility |
 | `environment` | Python version, platform, key package versions |
@@ -61,7 +76,8 @@ log_experiment(
     metrics={"r2_mean": 0.71, "best_val_loss": 0.0123},
     tags=["baseline", "per_session"],
     artifacts={"checkpoint": "outs/checkpoints/exp/best.ckpt"},
-    figures=["outs/results/exp/per_session_r2.png"],  # copied into the folder
+    figures=["outs/results/exp/per_session_r2.png"],  # referenced by path
+    # copy_figures=True,  # opt in to commit the PNGs into the folder
 )
 ```
 

@@ -124,8 +124,14 @@ def render_experiment_readme(record: ExperimentRecord) -> str:
         parts.append("\n## Visualizations\n")
         for fig in record.figures:
             title = fig.rsplit("/", 1)[-1]
-            parts.append(f"### {title}\n")
-            parts.append(f"![{title}]({fig})\n")
+            if fig.startswith("figures/"):
+                # Copied into the folder — embed so it renders on GitHub.
+                parts.append(f"### {title}\n")
+                parts.append(f"![{title}]({fig})\n")
+            else:
+                # Referenced by path (not committed, keeps the repo lean).
+                parts.append(f"- `{fig}` — referenced by path (not committed)")
+        parts.append("")
 
     if record.config:
         parts.append("\n## Configuration\n")

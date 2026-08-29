@@ -88,6 +88,7 @@ def _cmd_log(args: argparse.Namespace) -> int:
         structure=_read_text(args.structure_file) or (args.structure or None),
         tags=args.tag or None,
         figures=figures or None,
+        copy_figures=args.copy_figures,
         experiment_id=args.id,
         store=ExperimentStore(args.root),
     )
@@ -129,6 +130,11 @@ def build_parser() -> argparse.ArgumentParser:
     p_log.add_argument("--metrics-file", default=None, help="JSON metrics file.")
     p_log.add_argument("--tag", action="append", help="Repeatable tag.")
     p_log.add_argument("--figure", action="append", help="Repeatable figure path.")
+    p_log.add_argument(
+        "--copy-figures",
+        action="store_true",
+        help="Copy figures into git (default: reference by path, keeps the repo lean).",
+    )
     p_log.set_defaults(func=_cmd_log)
 
     return parser

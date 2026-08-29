@@ -55,8 +55,9 @@ class ExperimentRecord:
             resolved Hydra config), captured verbatim for reproducibility.
         metrics: Results — arbitrary (possibly nested) numeric summaries.
         tags: Short labels for filtering and grouping.
-        figures: Relative paths (within the experiment folder) to saved
-            visualizations.
+        figures: Paths to saved visualizations. Either references to files
+            outside git (kept lean, the default) or relative paths within the
+            experiment folder when copied in.
         artifacts: Named references to larger outputs kept outside git
             (e.g. checkpoint paths under ``outs/``).
         git: Repository state at run time.

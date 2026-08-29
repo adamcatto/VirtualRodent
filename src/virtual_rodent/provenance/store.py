@@ -64,6 +64,7 @@ class ExperimentStore:
         record: ExperimentRecord,
         *,
         figures: Optional[List[Union[str, Path]]] = None,
+        copy_figures: bool = False,
         config_yaml: Optional[str] = None,
         update_index: bool = True,
         overwrite: bool = False,
@@ -72,12 +73,20 @@ class ExperimentStore:
 
         Args:
             record: The experiment record to write. Its ``figures`` list is
-                extended with the basenames of any copied ``figures``.
-            figures: Image files to copy into the experiment's ``figures/``
-                subdirectory. Paths that do not exist are skipped with a
-                warning rather than raising.
+                extended with references to (or copies of) the ``figures``.
+            figures: Visualization files to associate with the experiment.
+                Paths that do not exist are skipped with a warning.
+            copy_figures: When ``False`` (default) figures are **referenced by
+                path** only — nothing binary is committed, keeping the
+                git-tracked folder lean (figures typically live in the
+                gitignored ``outs/``). When ``True`` the files are copied into
+                the experiment's ``figures/`` subdirectory so the record is
+                fully self-contained (use for the occasional run you want to
+                share or archive).
             config_yaml: Optional pre-serialized YAML config to write alongside
-                ``manifest.json`` (e.g. ``OmegaConf.to_yaml(cfg)``).
+                ``manifest.json`` (e.g. ``OmegaConf.to_yaml(cfg)``). Usually
+                unnecessary since ``manifest.json`` already holds ``config``;
+                provided for readability when desired.
             update_index: Rebuild the top-level ``README.md`` after saving.
             overwrite: Allow writing into an existing, non-empty experiment
                 folder. When ``False`` (default) an existing folder raises.
@@ -93,23 +102,26 @@ class ExperimentStore:
             )
         exp_dir.mkdir(parents=True, exist_ok=True)
 
-        # Copy figures in and register their relative paths on the record.
-        copied: List[str] = []
+        # Register figures on the record: either copy them in (self-contained,
+        # heavier) or reference them by path (lean, default).
+        registered: List[str] = []
         if figures:
             fig_dir = exp_dir / FIGURES_DIR
-            fig_dir.mkdir(exist_ok=True)
             for fig in figures:
                 src = Path(fig)
                 if not src.exists():
                     print(f"[provenance] warning: figure not found, skipping: {src}")
                     continue
-                dst = fig_dir / src.name
-                shutil.copy2(src, dst)
-                copied.append(f"{FIGURES_DIR}/{src.name}")
+                if copy_figures:
+                    fig_dir.mkdir(exist_ok=True)
+                    shutil.copy2(src, fig_dir / src.name)
+                    registered.append(f"{FIGURES_DIR}/{src.name}")
+                else:
+                    registered.append(str(fig))
         # Merge without duplicates, preserving order.
-        for rel in copied:
-            if rel not in record.figures:
-                record.figures.append(rel)
+        for ref in registered:
+            if ref not in record.figures:
+                record.figures.append(ref)
 
         # Write manifest (source of truth).
         manifest_path = exp_dir / MANIFEST_NAME
@@ -183,6 +195,7 @@ def log_experiment(
     tags: Optional[List[str]] = None,
     artifacts: Optional[Dict[str, str]] = None,
     figures: Optional[List[Union[str, Path]]] = None,
+    copy_figures: bool = False,
     config_yaml: Optional[str] = None,
     experiment_id: Optional[str] = None,
     status: str = "completed",
@@ -194,8 +207,8 @@ def log_experiment(
     """Capture and persist an experiment in one call.
 
     This is the primary entry point for instrumentation code. It builds an
-    :class:`ExperimentRecord` (capturing git and environment state), copies any
-    figures in, writes the folder, and refreshes the index.
+    :class:`ExperimentRecord` (capturing git and environment state), registers
+    any figures, writes the folder, and refreshes the index.
 
     Args:
         name: Human-readable experiment title.
@@ -205,8 +218,12 @@ def log_experiment(
         structure: How the experiment was structured (prose or dict).
         tags: Labels for grouping.
         artifacts: Named references to out-of-git outputs (e.g. checkpoints).
-        figures: Image files to copy into the experiment folder.
-        config_yaml: Optional pre-serialized YAML config snapshot.
+        figures: Visualization files to associate with the experiment.
+        copy_figures: Copy figures into git (``True``) or just reference them by
+            path (``False``, default — keeps the tracked folder lean). See
+            :meth:`ExperimentStore.save`.
+        config_yaml: Optional pre-serialized YAML config snapshot (usually
+            unnecessary; ``config`` is already stored in the manifest).
         experiment_id: Explicit id; auto-generated from ``name`` when omitted.
         status: Lifecycle marker.
         store: Target store. Defaults to the repo-level ``experiments/``.
@@ -232,5 +249,11 @@ def log_experiment(
         capture_env=capture_env,
     )
     store = store or ExperimentStore()
-    store.save(record, figures=figures, config_yaml=config_yaml, overwrite=overwrite)
+    store.save(
+        record,
+        figures=figures,
+        copy_figures=copy_figures,
+        config_yaml=config_yaml,
+        overwrite=overwrite,
+    )
     return record

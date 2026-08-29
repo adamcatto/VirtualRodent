@@ -104,7 +104,6 @@ def record_provenance(results, cfg):
             metrics=metrics,
             tags=[cfg.data.strategy, cfg.model.rnn_type, cfg.model.input_mode],
             artifacts={"checkpoint": results["best_model_path"]},
-            config_yaml=OmegaConf.to_yaml(cfg, resolve=True),
         )
         print(f"Provenance record written: experiments/{record.experiment_id}/")
     except Exception as exc:  # pragma: no cover - provenance must not break training
