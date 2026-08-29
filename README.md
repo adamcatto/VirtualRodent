@@ -41,7 +41,11 @@ the raw joint structure:
 ### Running the viewer
 
 ```bash
-# 1. Start the Flask API (serves pose data from data/Virtual_Rodent)
+# 0. (Optional) Configure paths/ports for your machine
+cp .env.example .env                 # then edit VIRTUAL_RODENT_DATA_DIR etc.
+
+# 1. Start the Flask API (serves pose data from VIRTUAL_RODENT_DATA_DIR,
+#    default: data/Virtual_Rodent)
 python src/website/app.py            # http://localhost:5001
 
 # 2. In another terminal, start the frontend
