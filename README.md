@@ -9,6 +9,7 @@ This project provides:
 - **PyTorch/Lightning datasets** for training neural decoding models
 - **Interactive website** for visualizing neural signals and pose trajectories
 - **Analysis tools** for exploring the relationship between neural activity and behavior
+- **Experiment provenance** for reproducible, git-tracked records of every forecasting run
 
 ## Pose Animation Viewer
 
@@ -67,13 +68,15 @@ VirtualRodent/
 │       └── motor_cortex/        # Motor cortex recordings
 ├── docs/
 │   └── ai/                      # AI-generated documentation
+├── experiments/                 # Git-tracked provenance records (one folder per run)
 ├── logs/                        # Training logs
 ├── notebooks/                   # Jupyter notebooks for analysis
 ├── outs/                        # Model outputs
 ├── scripts/                     # Utility scripts
 └── src/
     ├── virtual_rodent/          # Main Python package
-    │   └── data/                # Data loading and preprocessing
+    │   ├── data/                # Data loading and preprocessing
+    │   └── provenance/          # Experiment provenance layer
     ├── tests/                   # Unit tests
     └── website/                 # Interactive visualization app
 ```
@@ -108,6 +111,21 @@ dataset = VirtualRodentDataset(
 # Get a sample
 neural_signal, pose = dataset[0]
 ```
+
+## Experiment Provenance
+
+Every prediction / forecasting experiment can be recorded as a small,
+git-tracked entry under [`experiments/`](experiments/) capturing the exact
+commit hash, full configuration, results, and visualizations — so runs stay
+reproducible and reviewable. `scripts/train.py` records one automatically at the
+end of each run.
+
+```bash
+python -m virtual_rodent.provenance list     # list recorded experiments
+python -m virtual_rodent.provenance index    # rebuild the experiments/ leaderboard
+```
+
+See [docs/PROVENANCE.md](docs/PROVENANCE.md) for the full guide.
 
 ## Data
 

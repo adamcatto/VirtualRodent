@@ -44,7 +44,7 @@ def save_results(trainer, model, dm, cfg, output_dir):
         "input_mode": cfg.model.input_mode,
         "best_val_loss": float(trainer.checkpoint_callback.best_model_score),
         "best_model_path": str(trainer.checkpoint_callback.best_model_path),
-        "test_metrics": {k: float(v) for k, v in trainer.callback_metrics.items() if 'test/' in k},
+        "test_metrics": {k: float(v) for k, v in trainer.callback_metrics.items() if "test/" in k},
         "config": OmegaConf.to_container(cfg, resolve=True),
     }
 
@@ -55,6 +55,60 @@ def save_results(trainer, model, dm, cfg, output_dir):
     print(f"\nResults saved to: {output_file}")
     print(f"Best model checkpoint: {trainer.checkpoint_callback.best_model_path}")
     print(f"Best validation loss: {trainer.checkpoint_callback.best_model_score:.4f}")
+
+    # Record a git-tracked provenance entry under experiments/ so the run
+    # (commit, config, results) is reproducible and reviewable outside outs/.
+    record_provenance(results, cfg)
+
+
+def record_provenance(results, cfg):
+    """Write a git-tracked provenance record for this training run.
+
+    Curates the small, reviewable parts of the run (description, exact commit,
+    full config, headline metrics, checkpoint reference) into
+    ``experiments/<experiment_name>/`` via ``virtual_rodent.provenance``.
+    Failure here must never abort a completed training run, so errors are
+    caught and reported.
+    """
+    try:
+        from virtual_rodent.provenance import log_experiment
+
+        metrics = {"best_val_loss": results["best_val_loss"], **results["test_metrics"]}
+        description = (
+            f"{cfg.model.rnn_type.upper()} {cfg.model.input_mode} decoder trained with "
+            f"the `{cfg.data.strategy}` strategy.\n\n"
+            f"Neural history: {cfg.data.neural_history} frames "
+            f"({cfg.data.neural_history / 50:.1f}s at 50Hz); "
+            f"pose horizon: {cfg.data.pose_horizon} frames "
+            f"({cfg.data.pose_horizon / 50:.1f}s)."
+        )
+        structure = {
+            "split_strategy": cfg.data.strategy,
+            "model": {
+                "rnn_type": cfg.model.rnn_type,
+                "input_mode": cfg.model.input_mode,
+                "hidden_dim": cfg.model.hidden_dim,
+                "num_layers": cfg.model.num_layers,
+                "bidirectional": cfg.model.bidirectional,
+            },
+            "neural_history": cfg.data.neural_history,
+            "pose_history": cfg.data.pose_history,
+            "pose_horizon": cfg.data.pose_horizon,
+        }
+        record = log_experiment(
+            name=cfg.experiment_name,
+            experiment_id=cfg.experiment_name,
+            description=description,
+            structure=structure,
+            config=results["config"],
+            metrics=metrics,
+            tags=[cfg.data.strategy, cfg.model.rnn_type, cfg.model.input_mode],
+            artifacts={"checkpoint": results["best_model_path"]},
+            config_yaml=OmegaConf.to_yaml(cfg, resolve=True),
+        )
+        print(f"Provenance record written: experiments/{record.experiment_id}/")
+    except Exception as exc:  # pragma: no cover - provenance must not break training
+        print(f"[provenance] warning: failed to record experiment: {exc}")
 
 
 @hydra.main(version_base=None, config_path="../configs", config_name="config")
