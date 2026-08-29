@@ -10,6 +10,53 @@ This project provides:
 - **Interactive website** for visualizing neural signals and pose trajectories
 - **Analysis tools** for exploring the relationship between neural activity and behavior
 
+## Pose Animation Viewer
+
+The interactive website renders recorded 3D pose keypoints as a fully animated
+mouse in real time, using a Three.js scene with procedural geometry, 2-bone IK
+limbs, fur shell texturing, spring-driven ears/tail/whiskers, blinking, and
+foot-to-ground IK. Playback controls let you scrub, play, and adjust speed, and
+you can orbit/zoom the camera freely.
+
+<p align="center">
+  <img src="assets/screenshots/mouse_mesh_03.png" alt="Animated 3D mouse mesh, side profile" width="80%">
+</p>
+
+<p align="center">
+  <img src="assets/screenshots/mouse_mesh_01.png" alt="Animated 3D mouse mesh, three-quarter view" width="49%">
+  <img src="assets/screenshots/mouse_mesh_02.png" alt="Animated 3D mouse mesh, elevated three-quarter view" width="49%">
+</p>
+
+A lighter **keypoint / skeleton** render mode is also available for inspecting
+the raw joint structure:
+
+<p align="center">
+  <img src="assets/screenshots/skeleton_01.png" alt="Keypoint skeleton render mode" width="80%">
+</p>
+
+> The frames above were captured from the live viewer driven by a demo walking
+> sequence. To explore real recordings, point the backend at your
+> `data/Virtual_Rodent` directory and pick a session in the sidebar.
+
+### Running the viewer
+
+```bash
+# 0. (Optional) Configure paths/ports for your machine
+cp .env.example .env                 # then edit VIRTUAL_RODENT_DATA_DIR etc.
+
+# 1. Start the Flask API (serves pose data from VIRTUAL_RODENT_DATA_DIR,
+#    default: data/Virtual_Rodent)
+python src/website/app.py            # http://localhost:5001
+
+# 2. In another terminal, start the frontend
+cd src/website/frontend
+npm install
+npm run dev                          # http://localhost:3000
+```
+
+Open http://localhost:3000, choose a session, load a range of frames, and
+toggle between the 🐭 **Mouse Mesh** and 🦴 **Skeleton** render modes.
+
 ## Project Structure
 
 ```

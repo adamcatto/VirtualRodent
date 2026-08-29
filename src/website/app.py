@@ -7,19 +7,53 @@ Provides REST API endpoints for accessing predictions, metrics, and neural data.
 from flask import Flask, jsonify, send_file, request
 from flask_cors import CORS
 from pathlib import Path
+import os
 import json
 import numpy as np
-
-app = Flask(__name__)
-CORS(app)  # Enable CORS for React frontend
 
 # Get project root (src/website -> src -> project root)
 PROJECT_ROOT = Path(__file__).parent.parent.parent.resolve()
 
-# Paths (absolute from project root)
-RESULTS_DIR = PROJECT_ROOT / "outs/results"
-VIZ_DIR = PROJECT_ROOT / "outs/visualizations"
-DATA_DIR = PROJECT_ROOT / "data/Virtual_Rodent"
+
+def _load_dotenv(path: Path) -> None:
+    """Load KEY=VALUE pairs from a .env file into os.environ.
+
+    Dependency-free so the app runs without python-dotenv. Existing
+    environment variables take precedence over values in the file, and
+    lines that are blank or start with ``#`` are ignored.
+    """
+    if not path.exists():
+        return
+    for raw_line in path.read_text().splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, _, value = line.partition("=")
+        key = key.strip()
+        value = value.strip().strip('"').strip("'")
+        if key and key not in os.environ:
+            os.environ[key] = value
+
+
+def _resolve_path(env_var: str, default: str) -> Path:
+    """Resolve a path from the environment, relative to PROJECT_ROOT."""
+    value = os.environ.get(env_var, default)
+    path = Path(value).expanduser()
+    if not path.is_absolute():
+        path = PROJECT_ROOT / path
+    return path.resolve()
+
+
+# Load project-level environment variables from .env (if present).
+_load_dotenv(PROJECT_ROOT / ".env")
+
+app = Flask(__name__)
+CORS(app)  # Enable CORS for React frontend
+
+# Paths (configurable via .env; defaults are relative to the project root)
+RESULTS_DIR = _resolve_path("VIRTUAL_RODENT_RESULTS_DIR", "outs/results")
+VIZ_DIR = _resolve_path("VIRTUAL_RODENT_VIZ_DIR", "outs/visualizations")
+DATA_DIR = _resolve_path("VIRTUAL_RODENT_DATA_DIR", "data/Virtual_Rodent")
 
 
 @app.route("/")
@@ -516,10 +550,15 @@ def get_raw_pose(brain_region, animal, session_id):
 
 
 if __name__ == "__main__":
-    print("Starting VirtualRodent API server...")
-    print(f"Results directory: {RESULTS_DIR.absolute()}")
-    print(f"Visualizations directory: {VIZ_DIR.absolute()}")
-    print("\nAPI will be available at: http://localhost:5001")
-    print("API documentation at: http://localhost:5001/")
+    host = os.environ.get("FLASK_HOST", "0.0.0.0")
+    port = int(os.environ.get("FLASK_PORT", "5001"))
+    debug = os.environ.get("FLASK_DEBUG", "1") not in ("0", "false", "False", "")
 
-    app.run(debug=True, host="0.0.0.0", port=5001)
+    print("Starting VirtualRodent API server...")
+    print(f"Data directory: {DATA_DIR}")
+    print(f"Results directory: {RESULTS_DIR}")
+    print(f"Visualizations directory: {VIZ_DIR}")
+    print(f"\nAPI will be available at: http://localhost:{port}")
+    print(f"API documentation at: http://localhost:{port}/")
+
+    app.run(debug=debug, host=host, port=port)
